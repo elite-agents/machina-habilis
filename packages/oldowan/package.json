@@ -1,0 +1,24 @@
+{
+  "name": "@elite-agents/oldowan",
+  "module": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "prepare": "bun run build:all",
+    "build:all": "bun install && bun build ./src/index.ts --outdir ./dist && bun run build:types",
+    "dev": "bun run build:all --watch",
+    "build:types": "tsc --emitDeclarationOnly --declaration --outDir dist",
+    "publish": "bun run prepare && npm publish --access=public"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.4.1",
+    "hono": "^4.7.0",
+    "mcp-proxy": "^2.4.0",
+    "zod": "^3.24.1"
+  }
+}
