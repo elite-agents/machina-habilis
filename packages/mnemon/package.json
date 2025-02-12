@@ -1,0 +1,29 @@
+{
+  "name": "@elite-agents/mnemon",
+  "version": "0.0.1",
+  "type": "module",
+  "module": "src/index.ts",
+  "scripts": {
+    "prepare": "bun run build:all",
+    "build:all": "bun install && bun build ./src/index.ts --target bun --outdir ./dist && bun run build:types",
+    "dev": "bun run build:all --watch",
+    "build:types": "tsc --emitDeclarationOnly",
+    "publish": "bun run prepare && npm publish --access=public"
+  },
+  "dependencies": {
+    "@ai-sdk/openai": "latest",
+    "@elite-agents/oldowan": "*",
+    "@elite-agents/machina-habilis": "*",
+    "ai": "latest",
+    "drizzle-orm": "^0.39.3",
+    "falkordb": "latest",
+    "nanoid": "latest",
+    "postgres": "^3.4.5",
+    "zod": "latest"
+  },
+  "devDependencies": {
+    "bun-types": "latest"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts"
+}

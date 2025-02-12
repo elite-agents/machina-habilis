@@ -26,5 +26,7 @@
     "@solana/web3.js": "^1.98.0",
     "nanoid": "^5.0.9",
     "openai": "^4.83.0"
-  }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts"
 }

@@ -10,7 +10,10 @@ import type {
 } from './types.js';
 import type { SimplePersona } from './persona.js';
 import type { HabilisServer } from './habilis';
-
+import {
+  GET_CONTEXT_FROM_QUERY_TOOL_NAME,
+  INSERT_KNOWLEDGE_TOOL_NAME,
+} from './constants.js';
 export class MachinaAgent implements IMachinaAgent {
   habilisServer: HabilisServer;
 
@@ -42,8 +45,8 @@ export class MachinaAgent implements IMachinaAgent {
     }
   ): Promise<IMessageLifecycle> {
     let lifecycle: IMessageLifecycle = {
-      habilisPubkey: this.keypair.publicKey.toBase58(),
-      habilisName: this.persona.name,
+      agentPubkey: this.keypair.publicKey.toBase58(),
+      agentName: this.persona.name,
       messageId: nanoid(),
       message: message,
       createdAt: new Date().toISOString(),
@@ -57,9 +60,13 @@ export class MachinaAgent implements IMachinaAgent {
       actionsLog: [],
     };
 
-    const contextResults = await this.habilisServer.callTool('ctx_getContext', {
-      lifecycle,
-    });
+    // Recall context from memory server
+    const contextResults = await this.habilisServer.callTool(
+      GET_CONTEXT_FROM_QUERY_TOOL_NAME,
+      {
+        lifecycle,
+      }
+    );
 
     lifecycle.context = contextResults.context;
 
@@ -104,7 +111,8 @@ export class MachinaAgent implements IMachinaAgent {
         lifecycle.output = openaiResponse?.choices[0].message.content ?? '';
       }
 
-      await this.habilisServer.callTool('pp_createKnowledge', {
+      // Insert the knowledge into the memory server
+      await this.habilisServer.callTool(INSERT_KNOWLEDGE_TOOL_NAME, {
         lifecycle,
       });
     }

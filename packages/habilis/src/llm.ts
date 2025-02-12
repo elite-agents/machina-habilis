@@ -150,7 +150,7 @@ export async function generateText(
 export function createPrompt(lifecycle: IMessageLifecycle): string {
   return `
   # Name
-  ${lifecycle.habilisName}
+  ${lifecycle.agentName}
 
   # Identity Prompt
   ${lifecycle.identityPrompt}

@@ -14,13 +14,13 @@ export type OldowanToolDefinition = Tool & {
 };
 
 export const ZMessageLifecycle = z.object({
-  habilisPubkey: z.string(),
+  agentPubkey: z.string(),
   message: z.string(),
   messageId: z.string(),
   createdAt: z.string(),
   approval: z.string(),
   channelId: z.string().nullable(),
-  habilisName: z.string().default(''),
+  agentName: z.string().default(''),
   identityPrompt: z.string().nullable(),
   context: z.array(z.string()).default([]),
   tools: z.array(z.string()).default([]),
