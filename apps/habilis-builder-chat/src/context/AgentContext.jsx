@@ -1,10 +1,17 @@
 import { createContext, useContext, useState, useEffect } from 'react'
+import { HabilisServer, MachinaAgent } from '@elite-agents/machina-habilis'
+
 
 const AgentContext = createContext()
+const habilisServer = new HabilisServer('http://localhost:3002');
 
 export function AgentProvider({ children }) {
   const [agents, setAgents] = useState([])
   const [selectedAgent, setSelectedAgent] = useState(null)
+
+  useEffect(() => {
+    habilisServer.init([])
+  }, [])
 
   // Load agents and selected agent from localStorage on mount
   useEffect(() => {
@@ -43,6 +50,20 @@ export function AgentProvider({ children }) {
       description: '',
       image: 'G'
     }
+
+    const machinaAgent = new MachinaAgent(habilisServer, {
+      persona: {
+        name,
+        description: 'a new one'
+      },
+      abilityNames: ['create_agent'],
+      llm: {
+        model: 'gpt-4o-mini',
+        apiKey: ''
+      },
+      // keypair: new Keypair()
+    });
+
     setAgents([...agents, newAgent])
     setSelectedAgent(newAgent)
   }

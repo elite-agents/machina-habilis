@@ -23,7 +23,8 @@
     "zod": "latest"
   },
   "devDependencies": {
-    "bun-types": "latest"
+    "bun-types": "latest",
+    "typescript": "^5.0.0"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts"
