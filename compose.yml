@@ -1,0 +1,61 @@
+name: machina-habilis
+
+services:
+  memory-server:
+    build:
+      context: .
+      dockerfile: MemoryServer.Dockerfile
+    restart: on-failure
+    ports:
+      - '3002:3002' # mem server proxy
+      - '6002:6002' # mem server sse
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    networks:
+      - machina-habilis-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      falkordb:
+        condition: service_healthy
+
+  postgres:
+    image: pgvector/pgvector:0.8.0-pg17
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-app}
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - machina-habilis-network
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  falkordb:
+    image: falkordb/falkordb:latest
+    ports:
+      - '6379:6379'
+      - '3000:3000'
+    volumes:
+      - falkordb_data:/data
+    networks:
+      - machina-habilis-network
+    healthcheck:
+      test: ['CMD-SHELL', 'redis-cli ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  machina-habilis-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  falkordb_data:

@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@elite-agents/*": ["../*/src"]
+    },
+    "outDir": "dist",
+    "rootDir": "src"
+  },
+  "include": ["src"]
+}

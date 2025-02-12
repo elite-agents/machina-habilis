@@ -1,0 +1,18 @@
+{
+  "name": "memory-server",
+  "module": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --watch index.ts --sourcemap",
+    "start": "bun run index.ts"
+  },
+  "dependencies": {
+    "@elite-agents/mnemon": "workspace:*",
+    "hono": "^4.7.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.0.0"
+  }
+}

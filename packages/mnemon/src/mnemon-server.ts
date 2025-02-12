@@ -14,7 +14,7 @@ export class MnemonServer extends OldowanServer {
   recencyRag: RecencyRAG | undefined;
   oldowanServer: OldowanServer | undefined;
 
-  constructor() {
+  constructor(opts: { proxyPort: number; ssePort: number }) {
     const getContextFromQueryTool = new OldowanTool({
       name: GET_CONTEXT_FROM_QUERY_TOOL_NAME,
       description: 'Get context for a message',
@@ -39,6 +39,8 @@ export class MnemonServer extends OldowanServer {
 
     super('Mnemon Server', '1.0.0', {
       tools: [getContextFromQueryTool, insertKnowledgeTool],
+      proxyPort: opts.proxyPort,
+      ssePort: opts.ssePort,
     });
   }
 

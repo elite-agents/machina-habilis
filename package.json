@@ -8,8 +8,8 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "bun run --cwd packages build",
-    "dev": "bun run --cwd apps dev",
+    "build": "bun run --filter '*' --cached build",
+    "dev": "bun run --filter '*' --cached dev",
     "test": "bun test",
     "clean": "rm -rf node_modules && rm -rf apps/*/node_modules && rm -rf packages/*/node_modules"
   },
