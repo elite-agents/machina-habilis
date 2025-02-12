@@ -77,14 +77,13 @@ export async function generateEmbeddings(
 
 export async function generateText(
   generationModelSettings: ModelSettings,
-  generationModelKey: string,
   userMessage: string,
   tools: Tool[]
 ): Promise<OpenAI.Chat.Completions.ChatCompletion | void> {
   switch (generationModelSettings?.provider) {
     case 'openai':
       const openai = new OpenAI({
-        apiKey: generationModelKey,
+        apiKey: generationModelSettings.apiKey,
         baseURL: generationModelSettings.endpoint,
         dangerouslyAllowBrowser: true,
       });

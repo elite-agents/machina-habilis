@@ -1,134 +1,73 @@
-import { type IMessageLifecycle } from './types.js';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { SSEClientTransport } from './SSEClientTransport.js';
+import { SSEClientTransport } from './SSEClientTransport';
 import type { TextContent } from '@modelcontextprotocol/sdk/types.js';
-import type { Keypair } from '@solana/web3.js';
-import { createPrompt, generateText } from './llm.js';
-import { nanoid } from 'nanoid';
-import type { IHabilis, ToolWithServer } from './types.js';
-import type { Ability, SimplePersona } from './persona.js';
+import type { IHabilisServer, OldowanToolDefinition } from './types';
 
-const generationModelSettings = {
-  provider: 'openai' as const,
-  endpoint: 'https://api.openai.com/v1',
-  name: 'gpt-4o',
-};
-
-export class Habilis implements IHabilis {
+export class HabilisServer implements IHabilisServer {
   memoryServerUrl: string;
-  persona: SimplePersona | undefined;
-  keypair: Keypair | undefined;
-
-  modelApiKeys: {
-    generationKey: string | undefined;
-  } = {
-    generationKey: undefined,
-  };
 
   mcpClients: {
     [url: string]: Client;
   } = {};
 
-  tools: ToolWithServer[] = [];
+  toolsMap = new Map<string, OldowanToolDefinition>();
 
   constructor(memoryServerUrl: string) {
     this.memoryServerUrl = memoryServerUrl;
   }
 
-  static async create(
-    memoryServer: string,
-    opts: {
-      persona: SimplePersona;
-      abilities: Ability[];
-      privateKey: Keypair;
-      modelApiKeys: {
-        generationKey: string;
-        embeddingKey?: string;
-      };
-    }
-  ) {
-    const habilis = new Habilis(memoryServer);
-    await habilis.init(opts);
-    return habilis;
-  }
+  async init(mcpServers: string[]) {
+    await this.addMCPServer(this.memoryServerUrl);
 
-  async init(opts: {
-    persona: SimplePersona;
-    abilities: Ability[];
-    privateKey: Keypair;
-    modelApiKeys: {
-      generationKey: string;
-      embeddingKey?: string;
-    };
-  }) {
-    this.modelApiKeys = {
-      generationKey: opts.modelApiKeys.generationKey,
-    };
-
-    this.keypair = opts.privateKey;
-
-    await this.addMCPServer({ url: this.memoryServerUrl, ignoreTools: true });
-
-    this.persona = opts.persona;
-
-    // Group abilities by server URL
-    const serverAbilities = opts.abilities.reduce((acc, ability) => {
-      if (!acc[ability.abilityServer]) {
-        acc[ability.abilityServer] = [];
-      }
-      acc[ability.abilityServer].push(ability.name);
-      return acc;
-    }, {} as Record<string, string[]>);
-
-    // Add each server with its associated ability tool names
-    for (const [serverUrl, toolNames] of Object.entries(serverAbilities)) {
-      await this.addMCPServer({ url: serverUrl, toolNames });
+    for (const server of mcpServers) {
+      await this.addMCPServer(server);
     }
   }
 
-  async addMCPServer(opts: {
-    url: string;
-    toolNames?: string[];
-    ignoreTools?: boolean;
-  }) {
-    const client = new Client(
-      {
-        name: opts.url,
-        version: '1.0.0',
-      },
-      { capabilities: {} }
-    );
+  async addMCPServer(url: string) {
+    const client = new Client({
+      name: url,
+      version: '1.0.0',
+    });
 
-    await client.connect(new SSEClientTransport(new URL(opts.url)));
+    await client.connect(new SSEClientTransport(new URL(url)));
+
+    const versionInfo = await client.getServerVersion();
+
+    const serverName = versionInfo?.name ?? url;
 
     const { tools } = await client.listTools();
 
-    const filteredTools = opts.toolNames?.length
-      ? tools.filter((tool) => opts.toolNames?.includes(tool.name))
-      : tools;
+    // Normalize server name by replacing any non-alphanumeric/hyphen characters with underscores
+    // This ensures the server name can be safely used as part of tool identifiers
+    const normalizedServerName = `${serverName.replace(
+      /[^a-zA-Z0-9-]+/g,
+      '_'
+    )}`;
 
-    if (!opts.ignoreTools) {
-      this.tools.push(
-        ...filteredTools.map((tool) => ({
-          ...tool,
-          serverUrl: opts.url,
-        }))
-      );
+    for (const tool of tools) {
+      this.toolsMap.set(`${normalizedServerName}/${tool.name}`, {
+        ...tool,
+        uniqueName: `${normalizedServerName}/${tool.name}`,
+        serverUrl: url,
+      });
     }
-
-    this.mcpClients[opts.url] = client;
   }
 
-  private async callTool(
-    toolName: string,
-    toolURL: string,
-    args: any
-  ): Promise<any> {
-    const client = this.mcpClients[toolURL];
+  async callTool(toolUniqueName: string, args: any): Promise<any> {
+    const tool = this.toolsMap.get(toolUniqueName);
+    if (!tool) {
+      return `Tool ${toolUniqueName} not found`;
+    }
+
+    const client = this.mcpClients[tool.serverUrl];
+    if (!client) {
+      return `Unable to call tool ${toolUniqueName} because the client for ${tool.serverUrl} not found`;
+    }
 
     const result = (
       await client.callTool({
-        name: toolName,
+        name: tool.name,
         arguments: args,
       })
     ).content as TextContent[];
@@ -142,106 +81,5 @@ export class Habilis implements IHabilis {
         return result[0].text;
       }
     }
-  }
-
-  async message(
-    message: string,
-    opts?: {
-      channelId?: string;
-      callback?: (lifecycle: IMessageLifecycle) => void;
-    }
-  ): Promise<IMessageLifecycle> {
-    if (!this.keypair) {
-      throw new Error('Keypair not found');
-    }
-
-    if (!this.persona) {
-      throw new Error('Persona not found');
-    }
-
-    if (!this.modelApiKeys.generationKey) {
-      throw new Error('Model API key not found');
-    }
-
-    let lifecycle: IMessageLifecycle = {
-      habilisPubkey: this.keypair.publicKey.toBase58(),
-      habilisName: this.persona.name,
-      messageId: nanoid(),
-      message: message,
-      createdAt: new Date().toISOString(),
-      approval: '',
-      channelId: opts?.channelId ?? null,
-      identityPrompt: this.persona.bio.join('\n'),
-      context: [],
-      tools: [],
-      generatedPrompt: '',
-      output: '',
-      actionsLog: [],
-    };
-
-    const contextResults = await this.callTool(
-      'ctx_getContext',
-      this.memoryServerUrl,
-      {
-        lifecycle,
-      }
-    );
-
-    lifecycle.context = contextResults.context;
-
-    // Generate Text
-    let continuePrompting = true;
-    let openaiResponse;
-
-    while (continuePrompting) {
-      lifecycle.generatedPrompt = createPrompt(lifecycle);
-
-      openaiResponse = await generateText(
-        generationModelSettings,
-        this.modelApiKeys.generationKey,
-        lifecycle.generatedPrompt,
-        this.tools
-      );
-
-      console.log('OpenAI Response:', openaiResponse);
-
-      if (openaiResponse?.choices[0].message.tool_calls) {
-        const toolCall = openaiResponse.choices[0].message.tool_calls[0];
-        const toolName = toolCall.function.name;
-        const toolArgs = JSON.parse(toolCall.function.arguments);
-        const tool = this.tools.find((t) => t.name === toolName);
-        if (!tool) {
-          continuePrompting = false;
-          lifecycle.output = `Tool ${toolName} not found`;
-          break;
-        }
-
-        lifecycle.output =
-          openaiResponse.choices[0].message.content ??
-          `Using ability - ${toolName}`;
-        opts?.callback?.(lifecycle);
-
-        const toolResult = await this.callTool(
-          tool.name,
-          tool.serverUrl,
-          toolArgs
-        );
-
-        lifecycle.tools.push(
-          `Tool ${toolName} called with arguments: ${JSON.stringify(
-            toolArgs
-          )} and returned: ${JSON.stringify(toolResult)}`
-        );
-      } else {
-        continuePrompting = false;
-        lifecycle.output = openaiResponse?.choices[0].message.content ?? '';
-      }
-
-      await this.callTool('pp_createKnowledge', this.memoryServerUrl, {
-        lifecycle,
-      });
-    }
-
-    return lifecycle;
   }
 }

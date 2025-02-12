@@ -1,5 +1,5 @@
 {
-  "name": "@elite-agents/habilis",
+  "name": "@elite-agents/machina-habilis",
   "version": "0.0.1",
   "module": "src/index.ts",
   "type": "module",

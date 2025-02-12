@@ -1,43 +1,48 @@
-# Habilis 🛠️ - TypeScript Framework for Tool-using Autonomous Agents
+# Machina Habilis 🛠️ - TypeScript Framework for Tool-Using Autonomous Agents
 
-**Habilis** is an evolutionary step in AI agent development - a TypeScript framework enabling sophisticated tool usage through the Model Context Protocol (MCP). Named after humanity's first tool-making species, it comprises two core libraries:
+**Machina Habilis** is an evolutionary step in AI agent development - a TypeScript framework enabling sophisticated tool usage through the Model Context Protocol (MCP). Named after the Homo Habilis, humanity's first tool-using species, it comprises two core components:
 
 1. **🪨 @elite-agents/oldowan** - Foundational tool server implementation
-2. **🛠️ @elite-agents/habilis** - Advanced agent framework
+2. **🛠️ @elite-agents/habilis** - Advanced agent framework with:
+   - `HabilisServer`: Infrastructure layer for tool management
+   - `MachinaAgent`: Cognitive layer for conversation handling
 
 ```mermaid
-graph LR
-    A[Habilis Agent] -->|MCP| B[Oldowan Tools]
-    A -->|MCP| C[3rd-party Tools]
-    B --> D[External APIs]
-    C --> E[Other Services]
+graph TD
+    A[MachinaAgent] -->|Uses| B[HabilisServer]
+    B -->|MCP| C[Oldowan Tools]
+    B -->|MCP| D[3rd-party Tools]
+    C --> E[External APIs]
+    D --> F[Other Services]
 ```
 
 ## Features
 
-- **Cognitive Architecture**  
-  Context-aware agents with episodic memory
-- **Tool Ecosystem**  
+- **Layered Architecture**  
+  Clear separation between infrastructure (HabilisServer) and cognition (MachinaAgent)
+- **Distributed Tool Ecosystem**  
   Discover/use tools across multiple MCP servers
 - **Secure Protocol**  
   End-to-end encrypted tool communications
 - **Multi-Model Runtime**  
   OpenAI, Anthropic, Local LLM support
-- **TypeSafe Development**  
-  Full TypeScript validation across toolchain
 
-## Core Packages
+## Core Components
 
-### `@elite-agents/habilis` (Agent Framework)
+### `@elite-agents/machina-habilis` (Agent Framework)
 
 ```bash
-bun add @elite-agents/habilis
+bun add @elite-agents/machina-habilis
 ```
 
-- Autonomous agent core with tool orchestration
-- Dynamic persona/identity system
-- Contextual memory management
-- Multi-server tool discovery
+- **HabilisServer** - Infrastructure service layer:
+  - Manages MCP connections
+  - Catalogs available tools
+  - Handles cross-server communication
+- **MachinaAgent** - Cognitive conversation layer:
+  - LLM interaction pipelines
+  - Contextual memory management
+  - Persona-driven behavior
 
 ### `@elite-agents/oldowan` (Tool Server)
 
@@ -48,71 +53,94 @@ bun add @elite-agents/oldowan
 - MCP-compliant tool servers
 - Automatic validation & security
 - Zero-config proxy setup
-- Tool version management
 
 ## Quick Start
 
-1. **Create Tool Service** (Oldowan):
+1. **Create Agent**:
 
 ```typescript
-// weather.service.ts
-import { OldowanTool } from '@elite-agents/oldowan';
+import { MachinaAgent, HabilisServer } from '@elite-agents/habilis';
+import { Keypair } from '@solana/web3.js';
 
-export const weatherTool = new OldowanTool({
-  name: 'get_weather',
-  execute: ({ location }) => ({ temp: 22, location }),
+const habilisServer = new HabilisServer('http://localhost:8080'); // Memory server
+
+await habilisServer.init(['http://localhost:8888', 'http://localhost:9999']); // Tool servers
+
+const agent = new MachinaAgent(habilisServer, {
+  persona: {
+    name: 'Research Assistant',
+    bio: ['Knowledge-focused', 'Detail-oriented'],
+  },
+  abilityNames: ['web_search'],
+  llm: {
+    provider: 'openai',
+    name: 'gpt-4',
+    apiKey: 'sk-your-key',
+  },
+  keypair: Keypair.generate(),
 });
 ```
 
-2. **Create Agent** (Habilis):
+2. **Use Your Agent**:
 
 ```typescript
-// research-agent.ts
-import { Habilis } from '@elite-agents/habilis';
-
-const agent = await Habilis.create('http://memory-service', {
-  abilities: [
-    {
-      name: 'weather',
-      abilityServer: 'http://tool-service:3000',
-    },
-  ],
-});
-
 const response = await agent.message("What's the weather in Nairobi?", {
   channelId: 'weather-requests',
 });
+
+console.log(response.output);
 ```
 
-## Architecture
+## Architecture Overview
 
-**Habilis Agent Stack**
+### Component Roles
 
-```
-  Agent Persona
-      │
-      ▼
-  Cognitive Layer
-      │
-      ▼
-  Tool Orchestrator ◄──┐
-      │               │
-      ▼               │
-  MCP Protocol ───────┘
-      │
-      ▼
-  [Oldowan | 3rd-party Tools]
+**HabilisServer**
+
+- Infrastructure backbone
+- Tool discovery/registration
+- Cross-server coordination
+- Shared memory services
+
+**MachinaAgent**
+
+- User interaction interface
+- LLM reasoning pipelines
+- Contextual conversation state
+- Persona enforcement
+
+### Operational Flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant MachinaAgent
+    participant HabilisServer
+    participant Tools
+
+    User->>MachinaAgent: Message
+    MachinaAgent->>HabilisServer: Get context/tools
+    HabilisServer->>Tools: Query services
+    Tools-->>HabilisServer: Response
+    HabilisServer-->>MachinaAgent: Context data
+    MachinaAgent->>LLM: Generate response
+    LLM-->>MachinaAgent: Response plan
+    MachinaAgent->>HabilisServer: Execute tools
+    HabilisServer->>Tools: Call endpoints
+    Tools-->>HabilisServer: Tool results
+    HabilisServer-->>MachinaAgent: Processed data
+    MachinaAgent-->>User: Final response
 ```
 
 ## Why Habilis?
 
-1. **Evolutionary Tool Use**  
-   Agents adapt tool usage strategies based on context
+1. **Evolutionary Architecture**  
+   Clear separation between infrastructure and cognition layers
 
 2. **Distributed Cognition**  
    Tools remain decoupled from agent core
 
-3. **Protocol-first**  
+3. **Protocol-first Design**  
    MCP enables cross-platform interoperability
 
 4. **Secure Foundation**  

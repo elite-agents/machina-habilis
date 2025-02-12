@@ -1,5 +1,5 @@
 {
-  "name": "habilis",
+  "name": "machina-habilis",
   "private": true,
   "module": "index.ts",
   "type": "module",

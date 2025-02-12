@@ -9,7 +9,7 @@
       },
     },
     "packages/habilis": {
-      "name": "@elite-agents/habilis",
+      "name": "@elite-agents/machina-habilis",
       "version": "0.0.1",
       "dependencies": {
         "@anthropic-ai/sdk": "^0.36.3",
@@ -43,7 +43,7 @@
 
     "@babel/runtime": ["@babel/runtime@7.26.7", "", { "dependencies": { "regenerator-runtime": "^0.14.0" } }, "sha512-AOPI3D+a8dXnja+iwsUqGRjr1BbZIe771sXdapOtYI531gSqpi92vXivKcq2asu/DFpdl1ceFAKZyRzK2PCVcQ=="],
 
-    "@elite-agents/habilis": ["@elite-agents/habilis@workspace:packages/habilis"],
+    "@elite-agents/machina-habilis": ["@elite-agents/machina-habilis@workspace:packages/habilis"],
 
     "@elite-agents/oldowan": ["@elite-agents/oldowan@workspace:packages/oldowan"],
 

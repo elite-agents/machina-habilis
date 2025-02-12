@@ -1,11 +1,16 @@
 import type { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import type { Keypair } from '@solana/web3.js';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
-import type { SimplePersona } from './persona';
+import type { Ability, SimplePersona } from './persona';
 import * as z from 'zod';
 
-export type ToolWithServer = Tool & {
+export type OldowanToolDefinition = Tool & {
+  uniqueName: string;
   serverUrl: string;
+  tokenGate?: {
+    mint: string;
+    amount: bigint;
+  };
 };
 
 export const ZMessageLifecycle = z.object({
@@ -28,7 +33,7 @@ export const ZModelSettings = z.object({
   provider: z.enum(['openai', 'anthropic']),
   endpoint: z.string(),
   name: z.string(), // gpt-4o, claude-3-5-sonnet, etc.
-  apiKey: z.string().optional(),
+  apiKey: z.string(),
   temperature: z.number().optional(),
   maxTokens: z.number().optional(),
   dimensions: z.number().optional(),
@@ -38,37 +43,32 @@ export type ModelSettings = z.infer<typeof ZModelSettings>;
 
 export type IMessageLifecycle = z.infer<typeof ZMessageLifecycle>;
 
-export interface IHabilis {
-  // Properties
-  persona: SimplePersona | undefined;
-  keypair: Keypair | undefined;
+export interface IHabilisServer {
+  memoryServerUrl: string;
   mcpClients: {
     [url: string]: Client;
   };
-  tools: ToolWithServer[];
-  modelApiKeys: {
-    generationKey: string | undefined;
-  };
+  toolsMap: Map<string, OldowanToolDefinition>;
+}
+
+export type IMachinaAgentOpts = {
+  persona: SimplePersona;
+  abilityNames: string[];
+  llm: ModelSettings;
+  keypair: Keypair;
+};
+
+export interface IMachinaAgent extends IMachinaAgentOpts {
+  // Properties
+  habilisServer: IHabilisServer;
+  tools: OldowanToolDefinition[];
 
   // Methods
-  init(opts: {
-    persona: SimplePersona;
-    privateKey: Keypair;
-    modelApiKeys: {
-      generationKey: string;
-      embeddingKey?: string;
-    };
-  }): Promise<void>;
-
-  addMCPServer(opts: { url: string }): Promise<void>;
-
   message(
     message: string,
     opts?: {
       channelId?: string;
       context?: boolean;
-      actions?: boolean;
-      postProcess?: boolean;
     }
   ): Promise<IMessageLifecycle>;
 }
