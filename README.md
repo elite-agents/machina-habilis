@@ -3,7 +3,7 @@
 **Machina Habilis** is an evolutionary step in AI agent development - a TypeScript framework enabling sophisticated tool usage through the Model Context Protocol (MCP). Named after the Homo Habilis, humanity's first tool-using species, it comprises three core components:
 
 1. **🪨 @elite-agents/oldowan** - Foundational tool server implementation
-2. **🛠️ @elite-agents/habilis** - Advanced agent framework with:
+2. **🛠️ @elite-agents/machina-habilis** - Advanced agent framework with:
    - `HabilisServer`: Infrastructure layer for tool management
    - `MachinaAgent`: Cognitive layer for conversation handling
 3. **🧠 @elite-agents/mnemon** - Memory management system combining vector search and knowledge graph capabilities to enhance conversational context, featuring dual RAG architecture, contextual message recall, AI-integrated embeddings, and multi-tenancy support.

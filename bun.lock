@@ -8,7 +8,7 @@
         "typescript": "^5.0.0",
       },
     },
-    "packages/habilis": {
+    "packages/machina-habilis": {
       "name": "@elite-agents/machina-habilis",
       "version": "0.0.1",
       "dependencies": {
@@ -71,7 +71,7 @@
 
     "@babel/runtime": ["@babel/runtime@7.26.7", "", { "dependencies": { "regenerator-runtime": "^0.14.0" } }, "sha512-AOPI3D+a8dXnja+iwsUqGRjr1BbZIe771sXdapOtYI531gSqpi92vXivKcq2asu/DFpdl1ceFAKZyRzK2PCVcQ=="],
 
-    "@elite-agents/machina-habilis": ["@elite-agents/machina-habilis@workspace:packages/habilis"],
+    "@elite-agents/machina-habilis": ["@elite-agents/machina-habilis@workspace:packages/machina-habilis"],
 
     "@elite-agents/mnemon": ["@elite-agents/mnemon@workspace:packages/mnemon"],
 
