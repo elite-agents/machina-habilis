@@ -7,8 +7,8 @@
     "oldowan": "./dist/cli.js"
   },
   "scripts": {
-    "build": "bun build ./src/index.ts --outdir ./dist --target bun && bun run build:types",
-    "build:all": "bun install && bun build ./src/index.ts --outdir ./dist --target node && bun run build:types",
+    "build": "bun build ./src/index.ts ./src/cli.ts --outdir ./dist --target bun && bun run build:types",
+    "build:all": "bun install && bun build ./src/index.ts ./src/cli.ts --outdir ./dist --target node && bun run build:types",
     "dev": "bun run build:all --watch",
     "build:types": "tsc --emitDeclarationOnly --declaration --outDir dist",
     "publish": "bun run build && npm publish --access=public",
