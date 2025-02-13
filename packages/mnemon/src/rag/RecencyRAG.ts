@@ -110,7 +110,13 @@ export class RecencyRAG {
     text: string,
     from: 'user' | 'agent',
     agentPubkey: string,
-    channelId?: string
+    {
+      channelId,
+      createdAt,
+    }: {
+      channelId: string;
+      createdAt: string;
+    }
   ) {
     try {
       // Will be called twice, once for user message and once for AI message
@@ -132,7 +138,8 @@ export class RecencyRAG {
         message: text,
         embeddings: embeddings,
         agent_pubkey: agentPubkey,
-        channel_id: channelId ?? '',
+        channel_id: channelId,
+        timestamp: new Date(createdAt),
       });
 
       return id;
@@ -141,46 +148,9 @@ export class RecencyRAG {
       throw e;
     }
   }
-  async query(
-    text: string,
-    agentPubkey: string,
-    channelId?: string
-  ): Promise<string[]> {
+  async query(agentPubkey: string, channelId: string): Promise<string[]> {
     try {
-      // Get embeddings for text
-
-      const embeddings = (
-        await embed({
-          model: this.openai!.textEmbeddingModel(
-            this.aiConfig.embeddingModel ?? 'text-embedding-3-small'
-          ),
-          value: text,
-        })
-      ).embedding as number[]; // Array<Number>
-
-      // Vector Text
-      const similarityThreshold = 0.85; // TODO: Make this configurable
-      const limit = 5; // TODO: Make this configurable
-      const similarity = sql<number>`1 - (${cosineDistance(
-        RecencyRAGSchema.messages.embeddings,
-        embeddings
-      )})`;
-
-      // Get messages that match the vector search and belong to the agent and channel_id
-
-      const vectorSearchResults =
-        (await this.db
-          ?.select()
-          .from(RecencyRAGSchema.messages)
-          .where(
-            and(
-              eq(RecencyRAGSchema.messages.agent_pubkey, agentPubkey),
-              eq(RecencyRAGSchema.messages.channel_id, channelId ?? ''),
-              gte(similarity, similarityThreshold)
-            )
-          )
-          .orderBy(desc(similarity))
-          .limit(limit)) ?? [];
+      const limit = 10; // TODO: Make this configurable
 
       // Get last Y messages from channel_id that belong to the agent
       const lastYMessages =
@@ -190,16 +160,28 @@ export class RecencyRAG {
           .where(
             and(
               eq(RecencyRAGSchema.messages.agent_pubkey, agentPubkey),
-              eq(RecencyRAGSchema.messages.channel_id, channelId ?? '')
+              eq(RecencyRAGSchema.messages.channel_id, channelId)
             )
           )
           .orderBy(desc(RecencyRAGSchema.messages.timestamp))
           .limit(limit)) ?? [];
 
-      return [
-        ...vectorSearchResults.map((result) => result.message ?? ''),
-        ...lastYMessages.map((result) => result.message ?? ''),
-      ];
+      // Sort messages with same timestamp to put agent messages first
+      lastYMessages.sort((a, b) => {
+        if (a.timestamp?.getTime() === b.timestamp?.getTime()) {
+          return a.source === 'agent' ? -1 : 1;
+        }
+        return (b.timestamp?.getTime() ?? 0) - (a.timestamp?.getTime() ?? 0);
+      });
+
+      return lastYMessages.map((result) => {
+        const now = new Date();
+        const timestamp = result.timestamp ?? now;
+        const diffInSeconds = Math.floor(
+          (now.getTime() - timestamp.getTime()) / 1000
+        );
+        return `${diffInSeconds} seconds ago - ${result.source}: ${result.message}`;
+      });
     } catch (e: any) {
       console.error('Failed to query RecencyRAG: ', e);
       throw e;

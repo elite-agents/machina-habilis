@@ -1,40 +1,45 @@
-import React, {useEffect, useState} from 'react'
-import { useAgents } from '../context/AgentContext'
+import React, { useEffect, useState } from 'react';
+import { useAgents } from '../context/AgentContext';
 
 const ChatInterface = () => {
-  const { selectedAgent } = useAgents()
-  const [message, setMessage] = useState('')
-  const [chatHistory, setChatHistory] = useState([])
+  const { selectedAgent } = useAgents();
+  const [message, setMessage] = useState('');
+  const [chatHistory, setChatHistory] = useState([]);
 
   useEffect(() => {
-    setChatHistory([])
-  }, [selectedAgent])
+    setChatHistory([]);
+  }, [selectedAgent]);
 
   const handleSendMessage = async (e) => {
-    e.preventDefault()
-    if (!message.trim()) return
+    e.preventDefault();
+    if (!message.trim()) return;
 
     // Add user message to chat
     const newMessage = {
       id: Date.now(),
       content: message.trim(),
       sender: 'user',
-      timestamp: new Date().toISOString()
-    }
+      timestamp: new Date().toISOString(),
+    };
 
-    setChatHistory([...chatHistory, newMessage])
-    setMessage('')
+    setChatHistory([...chatHistory, newMessage]);
+    setMessage('');
 
-    const chatResponse = await selectedAgent.agentInstance.message('test')
-
-      const agentResponse = {
-        id: Date.now() + 1,
-        content: chatResponse.output,
-        sender: 'agent',
-        timestamp: new Date().toISOString()
+    const chatResponse = await selectedAgent.agentInstance.message(
+      newMessage.content,
+      {
+        channelId: 'habilis-builder-chat',
       }
-    setChatHistory(prev => [...prev, agentResponse])
-  }
+    );
+
+    const agentResponse = {
+      id: Date.now() + 1,
+      content: chatResponse.output,
+      sender: 'agent',
+      timestamp: new Date().toISOString(),
+    };
+    setChatHistory((prev) => [...prev, agentResponse]);
+  };
 
   return (
     <div className="w-96 border-l border-gray-800 p-6 bg-[#1a1a1a] flex flex-col">
@@ -51,7 +56,9 @@ const ChatInterface = () => {
         {chatHistory.map((msg) => (
           <div
             key={msg.id}
-            className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+            className={`flex ${
+              msg.sender === 'user' ? 'justify-end' : 'justify-start'
+            }`}
           >
             <div
               className={`max-w-[80%] rounded-lg px-4 py-2 ${
@@ -83,7 +90,7 @@ const ChatInterface = () => {
         </button>
       </form>
     </div>
-  )
-}
+  );
+};
 
-export default ChatInterface
+export default ChatInterface;

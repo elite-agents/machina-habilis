@@ -49,6 +49,8 @@ export interface IHabilisServer {
     [url: string]: Client;
   };
   toolsMap: Map<string, OldowanToolDefinition>;
+  recallContextTool?: string;
+  addKnowledgeTool?: string;
 }
 
 export type IMachinaAgentOpts = {

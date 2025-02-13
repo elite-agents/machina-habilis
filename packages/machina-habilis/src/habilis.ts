@@ -2,6 +2,10 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { SSEClientTransport } from './SSEClientTransport';
 import type { TextContent } from '@modelcontextprotocol/sdk/types.js';
 import type { IHabilisServer, OldowanToolDefinition } from './types';
+import {
+  GET_CONTEXT_FROM_QUERY_TOOL_NAME,
+  INSERT_KNOWLEDGE_TOOL_NAME,
+} from './constants';
 
 export class HabilisServer implements IHabilisServer {
   memoryServerUrl: string;
@@ -12,16 +16,38 @@ export class HabilisServer implements IHabilisServer {
 
   toolsMap = new Map<string, OldowanToolDefinition>();
 
+  recallContextTool?: string;
+  addKnowledgeTool?: string;
+
   constructor(memoryServerUrl: string) {
     this.memoryServerUrl = memoryServerUrl;
   }
 
   async init(mcpServers: string[]) {
-    await this.addMCPServer(this.memoryServerUrl);
+    console.log('Initializing Habilis Server with the following MCP servers:', [
+      this.memoryServerUrl,
+      ...mcpServers,
+    ]);
+
+    const memoryServerTools = await this.addMCPServer(this.memoryServerUrl);
+
+    this.recallContextTool = memoryServerTools.find((tool) =>
+      tool.includes(GET_CONTEXT_FROM_QUERY_TOOL_NAME)
+    );
+
+    this.addKnowledgeTool = memoryServerTools.find((tool) =>
+      tool.includes(INSERT_KNOWLEDGE_TOOL_NAME)
+    );
 
     for (const server of mcpServers) {
       await this.addMCPServer(server);
     }
+
+    console.log('Habilis Server initialized with the following MCP servers:', [
+      this.memoryServerUrl,
+      ...mcpServers,
+    ]);
+    console.log('Tools Map:', this.toolsMap);
   }
 
   async addMCPServer(url: string) {
@@ -45,13 +71,21 @@ export class HabilisServer implements IHabilisServer {
       '_'
     )}`;
 
-    for (const tool of tools) {
-      this.toolsMap.set(`${normalizedServerName}/${tool.name}`, {
+    const toolsAdded = tools.map((tool) => {
+      const toolName = `${normalizedServerName}/${tool.name}`;
+
+      this.toolsMap.set(toolName, {
         ...tool,
-        uniqueName: `${normalizedServerName}/${tool.name}`,
+        uniqueName: toolName,
         serverUrl: url,
       });
-    }
+
+      return toolName;
+    });
+
+    this.mcpClients[url] = client;
+
+    return toolsAdded;
   }
 
   async callTool(toolUniqueName: string, args: any): Promise<any> {
