@@ -3,6 +3,9 @@
   "module": "src/index.ts",
   "version": "0.0.8",
   "type": "module",
+  "bin": {
+    "oldowan": "./dist/cli.js"
+  },
   "scripts": {
     "build": "bun build ./src/index.ts --outdir ./dist --target bun && bun run build:types",
     "build:all": "bun install && bun build ./src/index.ts --outdir ./dist --target node && bun run build:types",
@@ -19,6 +22,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.4.1",
+    "commander": "^11.1.0",
     "hono": "^4.7.0",
     "zod": "^3.24.1"
   },
