@@ -102,7 +102,7 @@ export async function generateText(
         ],
         temperature: generationModelSettings.temperature,
         max_completion_tokens: generationModelSettings.maxTokens,
-        tools: tools.map((tool) => ({
+        tools: tools?.length > 0 ? tools.map((tool) => ({
           type: 'function' as const,
           function: {
             name: tool.name,
@@ -115,7 +115,7 @@ export async function generateText(
             },
             strict: true,
           },
-        })),
+        })) : undefined,
       };
 
       console.log('Payload:', payload);
