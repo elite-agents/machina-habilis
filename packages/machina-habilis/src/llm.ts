@@ -4,7 +4,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 
 export const SYSTEM_PROMPT = `
-You are an AI agent operating within a framework that provides you with:
+You are an tool-using AI agent operating within a framework that provides you with:
 - An identity (who you are and your core traits)
 - Context (memories and relevant information)
 - Tools (capabilities you can use)
@@ -102,20 +102,23 @@ export async function generateText(
         ],
         temperature: generationModelSettings.temperature,
         max_completion_tokens: generationModelSettings.maxTokens,
-        tools: tools?.length > 0 ? tools.map((tool) => ({
-          type: 'function' as const,
-          function: {
-            name: tool.name,
-            description: tool.description,
-            parameters: {
-              type: tool.inputSchema.type,
-              properties: tool.inputSchema.properties,
-              required: tool.inputSchema.required,
-              additionalProperties: false,
-            },
-            strict: true,
-          },
-        })) : undefined,
+        tools:
+          tools?.length > 0
+            ? tools.map((tool) => ({
+                type: 'function' as const,
+                function: {
+                  name: tool.name,
+                  description: tool.description,
+                  parameters: {
+                    type: tool.inputSchema.type,
+                    properties: tool.inputSchema.properties,
+                    required: tool.inputSchema.required,
+                    additionalProperties: false,
+                  },
+                  strict: true,
+                },
+              }))
+            : undefined,
       };
 
       console.log('Payload:', payload);
@@ -149,19 +152,20 @@ export async function generateText(
 
 export function createPrompt(lifecycle: IMessageLifecycle): string {
   return `
-  # Name
+  <Your Name>
   ${lifecycle.agentName}
+  </Your Name>
 
-  # Identity Prompt
+  <Your Identity>
   ${lifecycle.identityPrompt}
+  </Your Identity>
 
-  # User Message
+  <User Current Message>
   ${lifecycle.message}
-  
-  # Context
-  ${lifecycle.context?.join('\n')}
+  </User Current Message>
 
-  # Tools
-  ${lifecycle.tools?.join('\n')}
+  <Context>
+  ${lifecycle.context.join('\n')}
+  </Context>
   `;
 }

@@ -100,6 +100,8 @@ export class SimpleRAG {
         })
       ).object;
 
+      console.log('Entities and Relationships: ', entitiesAndRelationships);
+
       const graph = this.falkor.selectGraph(
         this.dbConfig.graph || 'simple_rag'
       );
@@ -317,6 +319,9 @@ export class SimpleRAG {
           );
         })
         .flat();
+
+      console.log('Entities with similar names: ', entitiesWithSimilarNames);
+      console.log('Extracted entities: ', extractedEntities);
 
       const entityContext: string[] = extractedEntities.map((entity, i) => {
         if (entitiesWithSimilarNames[i]) {

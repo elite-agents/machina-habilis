@@ -64,6 +64,7 @@ export class MnemonServer extends OldowanServer {
     lifecycle: IMessageLifecycle
   ): Promise<IMessageLifecycle> {
     try {
+      console.log(`Fetching context for`, { lifecycle });
       if (!this.simpleRag || !this.recencyRag) {
         return lifecycle;
       }
@@ -74,15 +75,18 @@ export class MnemonServer extends OldowanServer {
           lifecycle.channelId ?? undefined
         ),
         this.recencyRag.query(
-          lifecycle.message,
           lifecycle.agentPubkey,
-          lifecycle.channelId ?? undefined
+          lifecycle.channelId ?? 'None'
         ),
       ]);
+
+      console.log('Simple RAG Results: ', simpleRagResults);
+      console.log('Recency RAG Results: ', recencyRagResults);
 
       lifecycle.context.push(
         `\n# Entities Found In Previous Memory\n${simpleRagResults.join('\n')}`
       );
+
       lifecycle.context.push(
         `\n# Messages Found In Recent Memory\n${recencyRagResults.join('\n')}`
       );
@@ -120,13 +124,19 @@ export class MnemonServer extends OldowanServer {
           lifecycle.message,
           'user',
           lifecycle.agentPubkey,
-          lifecycle.channelId ?? undefined
+          {
+            channelId: lifecycle.channelId ?? 'None',
+            createdAt: lifecycle.createdAt,
+          }
         ),
         this.recencyRag.insert(
           lifecycle.output,
           'agent',
           lifecycle.agentPubkey,
-          lifecycle.channelId ?? undefined
+          {
+            channelId: lifecycle.channelId ?? 'None',
+            createdAt: lifecycle.createdAt,
+          }
         ),
       ]);
 

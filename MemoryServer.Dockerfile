@@ -12,6 +12,8 @@ RUN bun run build
 # Setup for running
 WORKDIR /app/apps/memory-server
 
+ENV IS_DOCKER=true
+
 EXPOSE 3002
 
 CMD ["bun", "run", "start"]

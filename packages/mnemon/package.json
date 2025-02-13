@@ -4,7 +4,6 @@
   "type": "module",
   "module": "src/index.ts",
   "scripts": {
-    "prepare": "bun run build:all",
     "build": "bun build ./src/index.ts --outdir ./dist --target bun && bun run build:types",
     "build:all": "bun install && bun build ./src/index.ts --target node --outdir ./dist && bun run build:types",
     "dev": "bun run build:all --watch",
