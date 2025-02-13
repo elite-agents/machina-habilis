@@ -1,0 +1,52 @@
+steps:
+  # Build the container image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'build',
+      '-t', 'gcr.io/$PROJECT_ID/mnemon-server',
+      '-f', 'MemoryServer.Dockerfile',
+      '.'
+    ]
+
+  # Push the container image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/mnemon-server']
+
+  # Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args: [
+      'run',
+      'deploy',
+      'mnemon-server',
+      '--image', 'gcr.io/$PROJECT_ID/mnemon-server',
+      '--region', 'us-central1',  # Change this to your preferred region
+      '--platform', 'managed',
+      '--port', '3002',
+      '--allow-unauthenticated',
+      '--set-env-vars',
+      'IS_DOCKER=true',
+      '--set-env-vars',
+      'OPENAI_API_KEY=${_OPENAI_API_KEY}',
+      '--set-env-vars',
+      'POSTGRES_HOST=${_POSTGRES_HOST},POSTGRES_USER=${_POSTGRES_USER},POSTGRES_PASSWORD=${_POSTGRES_PASSWORD},POSTGRES_DB=${_POSTGRES_DB}',
+      '--set-env-vars',
+      'FALKORDB_HOST=${_FALKORDB_HOST},FALKORDB_USER=${_FALKORDB_USER},FALKORDB_PASSWORD=${_FALKORDB_PASSWORD},FALKORDB_PORT=${_FALKORDB_PORT}'
+    ]
+
+images:
+  - 'gcr.io/$PROJECT_ID/mnemon-server'
+
+# Add logging configuration
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+substitutions:
+  _OPENAI_API_KEY: '' # Set this in Cloud Build trigger
+  _POSTGRES_HOST: '' # Set this in Cloud Build trigger
+  _POSTGRES_USER: 'postgres'
+  _POSTGRES_PASSWORD: '' # Set this in Cloud Build trigger
+  _POSTGRES_DB: 'memserver'
+  _FALKORDB_HOST: '' # Set this in Cloud Build trigger
+  _FALKORDB_USER: ''
+  _FALKORDB_PASSWORD: '' # Set this in Cloud Build trigger 

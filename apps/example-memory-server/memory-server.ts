@@ -2,6 +2,8 @@ import { MnemonServer } from '@elite-agents/mnemon';
 import { DualRagMemoryServer } from './rag/DualRagMemoryServer';
 
 const isDocker = () => process.env.IS_DOCKER === 'true';
+const proxyPort = +(process.env.PROXY_PORT || 3002);
+const ssePort = +(process.env.SSE_PORT || 6002);
 
 const rag = new DualRagMemoryServer(
   {
@@ -11,24 +13,26 @@ const rag = new DualRagMemoryServer(
   },
   {
     socket: {
-      host: isDocker() ? 'falkordb' : 'localhost',
-      port: isDocker() ? 6379 : 6902,
+      host: process.env.FALKORDB_HOST ?? (isDocker() ? 'falkordb' : 'localhost'),
+      port: +(process.env.FALKORDB_PORT ?? (isDocker() ? 6379 : 6902)),
     },
+    username: process.env.FALKORDB_USER ?? '',
+    password: process.env.FALKORDB_PASSWORD ?? '',
   },
   {
-    host: isDocker() ? 'postgres' : 'localhost',
-    port: isDocker() ? 5432 : 6901,
-    user: 'postgres',
-    password: 'postgres',
-    database: 'memserver',
-  },
+    host: process.env.POSTGRES_HOST ?? (isDocker() ? 'postgres' : 'localhost'),
+    port: +(process.env.POSTGRES_PORT ?? (isDocker() ? 5432 : 6901)),
+    user: process.env.POSTGRES_USER ?? 'postgres',
+    password: process.env.POSTGRES_PASSWORD ?? 'postgres',
+    database: process.env.POSTGRES_DB ?? 'memserver'
+  }
 );
 
 await rag.init();
 
 const mnemon = new MnemonServer({
-  proxyPort: 3002,
-  ssePort: 6002,
+  proxyPort,
+  ssePort,
   getContextFromQuery: rag.getContextFromQuery,
   insertKnowledge: rag.insertKnowledge,
 });
