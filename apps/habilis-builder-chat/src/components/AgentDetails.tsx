@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAgents } from '../context/AgentContext';
 
 const AgentDetails = () => {
@@ -15,15 +15,15 @@ const AgentDetails = () => {
   }, [selectedAgent]);
 
   const handleNameSubmit = () => {
-    if (tempName.trim() && tempName !== selectedAgent.name) {
-      updateAgent(selectedAgent.id, { name: tempName.trim() });
+    if (tempName.trim() && tempName !== selectedAgent?.name) {
+      updateAgent(selectedAgent?.id as number, { name: tempName.trim() });
     }
     setIsEditingName(false);
   };
 
   const handleDescSubmit = () => {
-    if (tempDesc !== selectedAgent.description) {
-      updateAgent(selectedAgent.id, { description: tempDesc });
+    if (tempDesc !== selectedAgent?.description) {
+      updateAgent(selectedAgent?.id as number, { description: tempDesc });
     }
     setIsEditingDesc(false);
   };
@@ -33,7 +33,7 @@ const AgentDetails = () => {
     const tool = e.dataTransfer.getData('application/json');
 
     if (tool && selectedAgent) {
-      selectedAgent.agentInstance.learnAbility(tool);
+      selectedAgent.machinaInstance?.learnAbility(tool);
     }
   };
 
@@ -121,7 +121,7 @@ const AgentDetails = () => {
             Current Abilities
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {selectedAgent?.agentInstance?.tools.map((tool) => {
+            {selectedAgent?.machinaInstance?.tools.map((tool) => {
               console.log('tool', tool);
               return (
                 <div
@@ -172,7 +172,7 @@ const AgentDetails = () => {
                   onDragStart={(e) =>
                     e.dataTransfer.setData(
                       'application/json',
-                      JSON.stringify(tool)
+                      JSON.stringify(tool),
                     )
                   }
                   className="flex flex-col items-center p-4 bg-gray-900 border border-transparent hover:border-green-500 rounded-lg transition-all duration-200"

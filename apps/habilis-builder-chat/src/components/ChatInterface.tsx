@@ -1,10 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAgents } from '../context/AgentContext';
 
+interface IChatHistory {
+  id: number;
+  content: string;
+  sender: string;
+  timestamp: string;
+}
 const ChatInterface = () => {
   const { selectedAgent } = useAgents();
   const [message, setMessage] = useState('');
-  const [chatHistory, setChatHistory] = useState([]);
+  const [chatHistory, setChatHistory] = useState<IChatHistory[]>([]);
 
   useEffect(() => {
     setChatHistory([]);
@@ -25,16 +31,16 @@ const ChatInterface = () => {
     setChatHistory([...chatHistory, newMessage]);
     setMessage('');
 
-    const chatResponse = await selectedAgent.agentInstance.message(
+    const chatResponse = await selectedAgent?.machinaInstance?.message(
       newMessage.content,
       {
         channelId: 'habilis-builder-chat',
-      }
+      },
     );
 
-    const agentResponse = {
+    const agentResponse: IChatHistory = {
       id: Date.now() + 1,
-      content: chatResponse.output,
+      content: chatResponse?.output as string,
       sender: 'agent',
       timestamp: new Date().toISOString(),
     };

@@ -1,17 +1,17 @@
-import React, { useState } from 'react'
-import { useAgents } from '../context/AgentContext'
+import { useState } from 'react';
+import { useAgents } from '../context/AgentContext';
 
 const EmptyState = () => {
-  const [newAgentName, setNewAgentName] = useState('')
-  const { createAgent } = useAgents()
+  const [newAgentName, setNewAgentName] = useState('');
+  const { createAgent } = useAgents();
 
   const handleCreate = (e) => {
-    e.preventDefault()
+    e.preventDefault();
     if (newAgentName.trim()) {
-      createAgent(newAgentName.trim())
-      setNewAgentName('')
+      createAgent(newAgentName.trim());
+      setNewAgentName('');
     }
-  }
+  };
 
   return (
     <div className="flex-1 flex items-center justify-center">
@@ -20,7 +20,8 @@ const EmptyState = () => {
           Create or Select an Agent
         </h2>
         <p className="text-gray-400">
-          Create a new agent to start chatting or select an existing one from the sidebar.
+          Create a new agent to start chatting or select an existing one from
+          the sidebar.
         </p>
         <form onSubmit={handleCreate} className="space-y-4">
           <input
@@ -40,7 +41,7 @@ const EmptyState = () => {
         </form>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default EmptyState 
+export default EmptyState;

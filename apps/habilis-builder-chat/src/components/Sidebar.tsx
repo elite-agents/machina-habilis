@@ -1,29 +1,27 @@
-import React, { useState } from 'react'
-import { useAgents } from '../context/AgentContext'
+import { useState } from 'react';
+import { useAgents } from '../context/AgentContext';
 
-const navItems = [
-  { icon: "G", label: "Habilis", type: "logo" },
-]
+const navItems = [{ icon: 'G', label: 'Habilis', type: 'logo' }];
 
 const Sidebar = () => {
-  const { agents, selectedAgent, setSelectedAgent, createAgent } = useAgents()
-  const [newAgentName, setNewAgentName] = useState('')
-  const [isCreating, setIsCreating] = useState(false)
+  const { agents, selectedAgent, setSelectedAgent, createAgent } = useAgents();
+  const [newAgentName, setNewAgentName] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
 
   const handleCreate = (e) => {
-    e.preventDefault()
+    e.preventDefault();
     if (newAgentName.trim()) {
-      createAgent(newAgentName.trim())
-      setNewAgentName('')
-      setIsCreating(false)
+      createAgent(newAgentName.trim());
+      setNewAgentName('');
+      setIsCreating(false);
     }
-  }
+  };
 
   return (
     <div className="fixed left-0 top-0 h-screen w-56 bg-[#1a1a1a] text-gray-300 p-4 flex flex-col">
       <nav className="space-y-4">
         {navItems.map((item) => (
-          <div 
+          <div
             key={item.label}
             className={`flex items-center space-x-3 p-2 rounded hover:bg-gray-800 cursor-pointer
               ${item.type === 'logo' ? 'mb-8' : ''}`}
@@ -33,12 +31,12 @@ const Sidebar = () => {
           </div>
         ))}
       </nav>
-      
+
       <div className="mt-8 border-t border-gray-800 pt-4 flex-1">
         <h3 className="text-sm text-gray-500 mb-4">Agents</h3>
-        
+
         <div className="space-y-2">
-          {agents.map(agent => (
+          {agents.map((agent) => (
             <div
               key={agent.id}
               onClick={() => setSelectedAgent(agent)}
@@ -75,7 +73,7 @@ const Sidebar = () => {
         )}
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default Sidebar 
+export default Sidebar;

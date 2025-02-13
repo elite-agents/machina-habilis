@@ -1,11 +1,11 @@
-import Sidebar from './components/Sidebar'
-import AgentDetails from './components/AgentDetails'
-import ChatInterface from './components/ChatInterface'
-import EmptyState from './components/EmptyState'
-import { AgentProvider, useAgents } from './context/AgentContext'
+import Sidebar from './components/Sidebar';
+import AgentDetails from './components/AgentDetails';
+import ChatInterface from './components/ChatInterface';
+import EmptyState from './components/EmptyState';
+import { AgentProvider, useAgents } from './context/AgentContext';
 
 function AppContent() {
-  const { selectedAgent } = useAgents()
+  const { selectedAgent } = useAgents();
 
   return (
     <div className="min-h-screen bg-[#121212] text-white">
@@ -21,7 +21,7 @@ function AppContent() {
         )}
       </div>
     </div>
-  )
+  );
 }
 
 function App() {
@@ -29,7 +29,7 @@ function App() {
     <AgentProvider>
       <AppContent />
     </AgentProvider>
-  )
+  );
 }
 
-export default App 
+export default App;
