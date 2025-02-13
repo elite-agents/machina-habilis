@@ -1,9 +1,23 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import { HabilisServer, MachinaAgent } from '@elite-agents/machina-habilis'
+import { Keypair } from '@solana/web3.js'
 
 
 const AgentContext = createContext()
 const habilisServer = new HabilisServer('http://localhost:3002');
+
+const createNewAgentInstance = (agent) => {
+  return new MachinaAgent(habilisServer, {
+    ...agent,
+    abilityNames: ['create_agent'],
+    llm: {
+      name: 'gpt-4o-mini',
+      provider: 'openai',
+      apiKey: 'sk-genopets-api-awaCHqoYAi6txZVHi5u9T3BlbkFJz6h7ZfQNAjxcSFDgrHov'
+    },
+    keypair: agent?.keypair || new Keypair()
+  });
+}
 
 export function AgentProvider({ children }) {
   const [agents, setAgents] = useState([])
@@ -17,13 +31,20 @@ export function AgentProvider({ children }) {
   useEffect(() => {
     const storedAgents = localStorage.getItem('agents')
     const storedSelectedAgentId = localStorage.getItem('selectedAgentId')
-    
+
     if (storedAgents) {
       const parsedAgents = JSON.parse(storedAgents)
-      setAgents(parsedAgents)
-      
+      const newInstanceAgents = []
+      for (const agent of parsedAgents) {
+        newInstanceAgents.push({
+          ...agent,
+          agentInstance: createNewAgentInstance(agent)
+        })
+      }
+      setAgents(newInstanceAgents)
+
       if (storedSelectedAgentId) {
-        const selectedAgent = parsedAgents.find(
+        const selectedAgent = newInstanceAgents.find(
           agent => agent.id === Number(storedSelectedAgentId)
         )
         if (selectedAgent) {
@@ -43,33 +64,27 @@ export function AgentProvider({ children }) {
     }
   }, [agents, selectedAgent])
 
-  const createAgent = (name) => {
+  const createAgent = async (name) => {
     const newAgent = {
       id: Date.now(),
       name,
       description: '',
-      image: 'G'
-    }
-
-    const machinaAgent = new MachinaAgent(habilisServer, {
+      image: 'G',
       persona: {
         name,
-        description: 'a new one'
+        description: 'a new one',
+        bio: [],
       },
-      abilityNames: ['create_agent'],
-      llm: {
-        model: 'gpt-4o-mini',
-        apiKey: ''
-      },
-      // keypair: new Keypair()
-    });
+    }
+
+    newAgent.agentInstance = createNewAgentInstance(newAgent)
 
     setAgents([...agents, newAgent])
     setSelectedAgent(newAgent)
   }
 
   const updateAgent = (id, updates) => {
-    const updatedAgents = agents.map(agent => 
+    const updatedAgents = agents.map(agent =>
       agent.id === id ? { ...agent, ...updates } : agent
     )
     setAgents(updatedAgents)
@@ -91,4 +106,4 @@ export function AgentProvider({ children }) {
   )
 }
 
-export const useAgents = () => useContext(AgentContext) 
+export const useAgents = () => useContext(AgentContext)

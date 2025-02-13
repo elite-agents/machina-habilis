@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, {useEffect, useState} from 'react'
 import { useAgents } from '../context/AgentContext'
 
 const ChatInterface = () => {
@@ -6,7 +6,11 @@ const ChatInterface = () => {
   const [message, setMessage] = useState('')
   const [chatHistory, setChatHistory] = useState([])
 
-  const handleSendMessage = (e) => {
+  useEffect(() => {
+    setChatHistory([])
+  }, [selectedAgent])
+
+  const handleSendMessage = async (e) => {
     e.preventDefault()
     if (!message.trim()) return
 
@@ -17,21 +21,19 @@ const ChatInterface = () => {
       sender: 'user',
       timestamp: new Date().toISOString()
     }
-    
+
     setChatHistory([...chatHistory, newMessage])
     setMessage('')
 
-    // TODO: Implement actual agent response logic
-    // For now, just echo a response
-    setTimeout(() => {
+    const chatResponse = await selectedAgent.agentInstance.message('test')
+
       const agentResponse = {
         id: Date.now() + 1,
-        content: `I am ${selectedAgent.name}. You said: ${message.trim()}`,
+        content: chatResponse.output,
         sender: 'agent',
         timestamp: new Date().toISOString()
       }
-      setChatHistory(prev => [...prev, agentResponse])
-    }, 1000)
+    setChatHistory(prev => [...prev, agentResponse])
   }
 
   return (
@@ -84,4 +86,4 @@ const ChatInterface = () => {
   )
 }
 
-export default ChatInterface 
+export default ChatInterface
