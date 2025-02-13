@@ -22,9 +22,14 @@ const createNewAgentInstance = (agent) => {
 export function AgentProvider({ children }) {
   const [agents, setAgents] = useState([]);
   const [selectedAgent, setSelectedAgent] = useState(null);
+  const [habilisServerTools, setHabilisServerTools] = useState([]);
 
   useEffect(() => {
-    habilisServer.init([]);
+    async function init() {
+      await habilisServer.init(['http://localhost:3003/sse']);
+      setHabilisServerTools(Array.from(habilisServer.toolsMap.values()));
+    }
+    init();
   }, []);
 
   // Load agents and selected agent from localStorage on mount
@@ -101,6 +106,7 @@ export function AgentProvider({ children }) {
         setSelectedAgent,
         createAgent,
         updateAgent,
+        habilisServerTools,
       }}
     >
       {children}

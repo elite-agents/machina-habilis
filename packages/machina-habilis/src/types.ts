@@ -73,4 +73,6 @@ export interface IMachinaAgent extends IMachinaAgentOpts {
       context?: boolean;
     }
   ): Promise<IMessageLifecycle>;
+
+  learnAbility(ability: OldowanToolDefinition): void;
 }

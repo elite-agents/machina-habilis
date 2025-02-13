@@ -33,6 +33,11 @@ export class MachinaAgent implements IMachinaAgent {
       .toArray();
   }
 
+  learnAbility(ability: OldowanToolDefinition) {
+    this.tools.push(ability);
+    this.abilityNames.push(ability.uniqueName);
+  }
+
   async message(
     message: string,
     opts?: {
