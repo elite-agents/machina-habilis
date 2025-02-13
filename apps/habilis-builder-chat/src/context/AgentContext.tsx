@@ -1,11 +1,57 @@
-import { createContext, useContext, useState, useEffect } from 'react';
-import { HabilisServer, MachinaAgent } from '@elite-agents/machina-habilis';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  type ReactNode,
+} from 'react';
+import {
+  HabilisServer,
+  MachinaAgent,
+  OldowanToolDefinition,
+  type IMachinaAgentOpts,
+} from '@elite-agents/machina-habilis';
 import { Keypair } from '@solana/web3.js';
 
-const AgentContext = createContext();
+interface Agent {
+  id: number;
+  name: string;
+  description: string;
+  image: string;
+  persona: {
+    name: string;
+    description: string;
+    bio: string[];
+  };
+  machinaInstance?: MachinaAgent;
+  keypair?: Keypair;
+}
+
+interface AgentContextType {
+  agents: Agent[];
+  selectedAgent: Agent | null;
+  setSelectedAgent: (agent: Agent | null) => void;
+  createAgent: (name: string) => Promise<void>;
+  updateAgent: (id: number, updates: Partial<Agent>) => void;
+  habilisServerTools: OldowanToolDefinition[];
+}
+
+const AgentContext = createContext<AgentContextType>({
+  agents: [],
+  selectedAgent: null,
+  setSelectedAgent: () => {},
+  createAgent: async () => {},
+  updateAgent: () => {},
+  habilisServerTools: [],
+});
+
+interface AgentProviderProps {
+  children: ReactNode;
+}
+
 const habilisServer = new HabilisServer('http://localhost:3002/sse');
 
-const createNewAgentInstance = (agent) => {
+const createMachinaInstance = (agent: Partial<Agent>) => {
   return new MachinaAgent(habilisServer, {
     ...agent,
     abilityNames: ['create_agent'],
@@ -16,13 +62,15 @@ const createNewAgentInstance = (agent) => {
         'sk-genopets-api-awaCHqoYAi6txZVHi5u9T3BlbkFJz6h7ZfQNAjxcSFDgrHov',
     },
     keypair: agent?.keypair || new Keypair(),
-  });
+  } as unknown as IMachinaAgentOpts);
 };
 
-export function AgentProvider({ children }) {
-  const [agents, setAgents] = useState([]);
-  const [selectedAgent, setSelectedAgent] = useState(null);
-  const [habilisServerTools, setHabilisServerTools] = useState([]);
+export function AgentProvider({ children }: AgentProviderProps) {
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
+  const [habilisServerTools, setHabilisServerTools] = useState<
+    OldowanToolDefinition[]
+  >([]);
 
   useEffect(() => {
     async function init() {
@@ -38,19 +86,16 @@ export function AgentProvider({ children }) {
     const storedSelectedAgentId = localStorage.getItem('selectedAgentId');
 
     if (storedAgents) {
-      const parsedAgents = JSON.parse(storedAgents);
-      const newInstanceAgents = [];
-      for (const agent of parsedAgents) {
-        newInstanceAgents.push({
-          ...agent,
-          agentInstance: createNewAgentInstance(agent),
-        });
-      }
+      const parsedAgents: Agent[] = JSON.parse(storedAgents);
+      const newInstanceAgents = parsedAgents.map((agent) => ({
+        ...agent,
+        agentInstance: createMachinaInstance(agent),
+      }));
       setAgents(newInstanceAgents);
 
       if (storedSelectedAgentId) {
         const selectedAgent = newInstanceAgents.find(
-          (agent) => agent.id === Number(storedSelectedAgentId)
+          (agent) => agent.id === Number(storedSelectedAgentId),
         );
         if (selectedAgent) {
           setSelectedAgent(selectedAgent);
@@ -69,8 +114,8 @@ export function AgentProvider({ children }) {
     }
   }, [agents, selectedAgent]);
 
-  const createAgent = async (name) => {
-    const newAgent = {
+  const createAgent = async (name: string) => {
+    const newAgent: Agent = {
       id: Date.now(),
       name,
       description: '',
@@ -82,15 +127,15 @@ export function AgentProvider({ children }) {
       },
     };
 
-    newAgent.agentInstance = createNewAgentInstance(newAgent);
+    newAgent.machinaInstance = createMachinaInstance(newAgent);
 
     setAgents([...agents, newAgent]);
     setSelectedAgent(newAgent);
   };
 
-  const updateAgent = (id, updates) => {
+  const updateAgent = (id: number, updates: Partial<Agent>) => {
     const updatedAgents = agents.map((agent) =>
-      agent.id === id ? { ...agent, ...updates } : agent
+      agent.id === id ? { ...agent, ...updates } : agent,
     );
     setAgents(updatedAgents);
     if (selectedAgent?.id === id) {
