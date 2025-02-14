@@ -6,8 +6,9 @@ COPY ./ .
 # Install dependencies at root level first
 RUN bun install
 
-RUN bun run build
-
+# Build packages in dependency order
+RUN bun run --filter @elite-agents/machina-habilis build
+RUN bun run --filter @elite-agents/oldowan build
 
 # Setup for running
 WORKDIR /app/apps/example-oldowan-server
