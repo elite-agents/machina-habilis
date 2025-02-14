@@ -51,7 +51,7 @@ interface AgentProviderProps {
 
 const habilisServer = new HabilisServer('http://localhost:3002/sse');
 
-const createMachinaInstance = (agent: Partial<Agent>) => {
+const createMachinaInstance = (agent: Partial<Agent>): MachinaAgent => {
   return new MachinaAgent(habilisServer, {
     ...agent,
     abilityNames: ['create_agent'],
@@ -87,9 +87,9 @@ export function AgentProvider({ children }: AgentProviderProps) {
 
     if (storedAgents) {
       const parsedAgents: Agent[] = JSON.parse(storedAgents);
-      const newInstanceAgents = parsedAgents.map((agent) => ({
+      const newInstanceAgents: Agent[] = parsedAgents.map((agent: Agent) => ({
         ...agent,
-        agentInstance: createMachinaInstance(agent),
+        machinaInstance: createMachinaInstance(agent) as MachinaAgent,
       }));
       setAgents(newInstanceAgents);
 
