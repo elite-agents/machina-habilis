@@ -24,14 +24,17 @@ steps:
       '--platform', 'managed',
       '--port', '3002',
       '--allow-unauthenticated',
-      '--set-env-vars',
-      'IS_DOCKER=true',
-      '--set-env-vars',
-      'OPENAI_API_KEY=${_OPENAI_API_KEY}',
-      '--set-env-vars',
-      'POSTGRES_HOST=${_POSTGRES_HOST},POSTGRES_USER=${_POSTGRES_USER},POSTGRES_PASSWORD=${_POSTGRES_PASSWORD},POSTGRES_DB=${_POSTGRES_DB}',
-      '--set-env-vars',
-      'FALKORDB_HOST=${_FALKORDB_HOST},FALKORDB_USER=${_FALKORDB_USER},FALKORDB_PASSWORD=${_FALKORDB_PASSWORD},FALKORDB_PORT=${_FALKORDB_PORT}'
+      '--set-env-vars', 'IS_DOCKER=true',
+      '--set-env-vars', 'PROXY_PORT=3002',
+      '--set-env-vars', 'OPENAI_API_KEY=${_OPENAI_API_KEY}',
+      '--set-env-vars', 'POSTGRES_HOST=${_POSTGRES_HOST}',
+      '--set-env-vars', 'POSTGRES_USER=${_POSTGRES_USER}',
+      '--set-env-vars', 'POSTGRES_PASSWORD=${_POSTGRES_PASSWORD}',
+      '--set-env-vars', 'POSTGRES_DB=${_POSTGRES_DB}',
+      '--set-env-vars', 'FALKORDB_HOST=${_FALKORDB_HOST}',
+      '--set-env-vars', 'FALKORDB_USER=${_FALKORDB_USER}',
+      '--set-env-vars', 'FALKORDB_PASSWORD=${_FALKORDB_PASSWORD}',
+      '--set-env-vars', 'FALKORDB_PORT=${_FALKORDB_PORT}'
     ]
 
 images:
