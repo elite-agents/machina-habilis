@@ -11,14 +11,9 @@
     "publish": "bun run prepare && npm publish --access=public"
   },
   "dependencies": {
-    "@ai-sdk/openai": "latest",
     "@elite-agents/oldowan": "*",
     "@elite-agents/machina-habilis": "*",
-    "ai": "latest",
-    "drizzle-orm": "^0.39.3",
-    "falkordb": "latest",
     "nanoid": "latest",
-    "postgres": "^3.4.5",
     "zod": "latest"
   },
   "devDependencies": {

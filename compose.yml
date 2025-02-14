@@ -1,6 +1,16 @@
 name: machina-habilis
 
 services:
+  oldowan-server:
+    build:
+      context: .
+      dockerfile: OldowanServer.Dockerfile
+    restart: on-failure
+    ports:
+      - '3003:3003' # mem server proxy
+      - '6003:6003' # mem server sse
+    networks:
+      - machina-habilis-network
   memory-server:
     build:
       context: .

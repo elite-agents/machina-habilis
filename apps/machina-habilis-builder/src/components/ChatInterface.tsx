@@ -34,7 +34,7 @@ const ChatInterface = () => {
     const chatResponse = await selectedAgent?.machinaInstance?.message(
       newMessage.content,
       {
-        channelId: 'habilis-builder-chat',
+        channelId: 'machina-habilis-builder',
       },
     );
 

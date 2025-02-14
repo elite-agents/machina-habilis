@@ -1,7 +1,6 @@
-import oldowan from './oldowan-server';
+import oldowanServer from './oldowan-server';
 
 try {
-  const oldowanServer = await oldowan.getProxy();
   Bun.serve({
     ...oldowanServer,
     idleTimeout: 255,

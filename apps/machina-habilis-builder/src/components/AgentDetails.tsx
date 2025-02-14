@@ -32,6 +32,8 @@ const AgentDetails = () => {
     e.preventDefault();
     const tool = e.dataTransfer.getData('application/json');
 
+    console.log('tool', tool);
+
     if (tool && selectedAgent) {
       selectedAgent.machinaInstance?.learnAbility(tool);
     }

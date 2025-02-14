@@ -31,6 +31,8 @@ export class HabilisServer implements IHabilisServer {
 
     const memoryServerTools = await this.addMCPServer(this.memoryServerUrl);
 
+    console.log('memoryServerTools', memoryServerTools);  
+
     this.recallContextTool = memoryServerTools.find((tool) =>
       tool.includes(GET_CONTEXT_FROM_QUERY_TOOL_NAME)
     );
@@ -56,7 +58,11 @@ export class HabilisServer implements IHabilisServer {
       version: '1.0.0',
     });
 
+    console.log('Connecting to MCP server:', url);
+
     await client.connect(new SSEClientTransport(new URL(url)));
+
+    console.log('Connected to MCP server:', url);
 
     const versionInfo = await client.getServerVersion();
 

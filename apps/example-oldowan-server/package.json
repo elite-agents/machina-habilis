@@ -1,5 +1,5 @@
 {
-  "name": "defai-oldowan-server",
+  "name": "example-oldowan-server",
   "module": "index.ts",
   "type": "module",
   "scripts": {

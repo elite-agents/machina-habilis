@@ -1,14 +1,9 @@
 import { MnemonServer } from '@elite-agents/mnemon';
+import { DualRagMemoryServer } from './rag/DualRagMemoryServer';
 
 const isDocker = () => process.env.IS_DOCKER === 'true';
 
-const mnemon = new MnemonServer({
-  proxyPort: 3002,
-  ssePort: 6002,
-});
-
-// Initialize the server with configurations
-await mnemon.init(
+const rag = new DualRagMemoryServer(
   {
     baseUrl: 'https://api.openai.com/v1',
     apiKey: process.env.OPENAI_API_KEY,
@@ -26,7 +21,18 @@ await mnemon.init(
     user: 'postgres',
     password: 'postgres',
     database: 'memserver',
-  }
+  },
 );
 
-export default mnemon;
+await rag.init();
+
+const mnemon = new MnemonServer({
+  proxyPort: 3002,
+  ssePort: 6002,
+  getContextFromQuery: rag.getContextFromQuery,
+  insertKnowledge: rag.insertKnowledge,
+});
+
+const proxyServer = await mnemon.getProxy();
+
+export default proxyServer;
