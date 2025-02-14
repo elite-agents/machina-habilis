@@ -1,5 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useAgents } from '../context/AgentContext';
+import {
+  GET_CONTEXT_FROM_QUERY_TOOL_NAME,
+  INSERT_KNOWLEDGE_TOOL_NAME,
+} from '@elite-agents/machina-habilis';
 
 const AgentDetails = () => {
   const { selectedAgent, updateAgent, habilisServerTools } = useAgents();
@@ -7,6 +11,7 @@ const AgentDetails = () => {
   const [isEditingDesc, setIsEditingDesc] = useState(false);
   const [tempName, setTempName] = useState(selectedAgent?.name || '');
   const [tempDesc, setTempDesc] = useState(selectedAgent?.description || '');
+  const [isDragging, setIsDragging] = useState(false);
 
   // Update temp states when selected agent changes
   useEffect(() => {
@@ -30,13 +35,16 @@ const AgentDetails = () => {
 
   const handleToolDrop = (e) => {
     e.preventDefault();
-    const tool = e.dataTransfer.getData('application/json');
-
-    console.log('tool', tool);
+    const toolUniqueName = e.dataTransfer.getData('text/plain');
+    const tool = habilisServerTools.get(toolUniqueName);
 
     if (tool && selectedAgent) {
       selectedAgent.machinaInstance?.learnAbility(tool);
+      updateAgent(selectedAgent.id, {
+        machinaInstance: selectedAgent.machinaInstance,
+      });
     }
+    setIsDragging(false);
   };
 
   return (
@@ -123,11 +131,12 @@ const AgentDetails = () => {
             Current Abilities
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {selectedAgent?.machinaInstance?.tools.map((tool) => {
-              console.log('tool', tool);
+            {Array.from(
+              selectedAgent?.machinaInstance?.abilityMap.entries() ?? [],
+            ).map(([key, tool]) => {
               return (
                 <div
-                  key={tool.uniqueName}
+                  key={key}
                   draggable={false}
                   className="flex flex-col items-center p-4 bg-gray-900 border border-transparent hover:border-green-500 rounded-lg transition-all duration-200"
                 >
@@ -149,11 +158,15 @@ const AgentDetails = () => {
           </div>
         </div>
 
-        {/* Drop Zone for adding tools to agent abilities */}
+        {/* Always render drop zone but control visibility */}
         <div
           onDragOver={(e) => e.preventDefault()}
           onDrop={handleToolDrop}
-          className="border-2 border-dashed border-gray-500 rounded-lg p-8 flex items-center justify-center bg-gray-800 hover:bg-gray-700 transition-colors duration-200"
+          className={`border-2 border-dashed border-gray-500 rounded-lg flex items-center justify-center bg-gray-800 transition-all duration-200 ${
+            selectedAgent?.machinaInstance?.abilityMap.size === 0 || isDragging
+              ? 'opacity-100 pointer-events-auto p-8 h-auto my-4'
+              : 'opacity-0 pointer-events-none h-0 p-0 my-0 overflow-hidden'
+          }`}
         >
           <p className="text-gray-400 text-center text-lg">
             Drag & drop a tool here to add it to this agent
@@ -163,20 +176,27 @@ const AgentDetails = () => {
         {/* Available Tools List */}
         <div className="mt-4">
           <h3 className="text-gray-200 text-lg font-semibold mb-2">
-            Abilities to add
+            Abilities Available to Learn
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-            {habilisServerTools.map((tool) => {
-              return (
+            {Array.from(habilisServerTools.entries())
+              .filter(
+                ([key, tool]) =>
+                  !selectedAgent?.machinaInstance?.abilityMap.has(key) &&
+                  ![
+                    GET_CONTEXT_FROM_QUERY_TOOL_NAME,
+                    INSERT_KNOWLEDGE_TOOL_NAME,
+                  ].includes(tool.name),
+              )
+              .map(([key, tool]) => (
                 <div
-                  key={tool.uniqueName}
+                  key={key}
                   draggable
-                  onDragStart={(e) =>
-                    e.dataTransfer.setData(
-                      'application/json',
-                      JSON.stringify(tool),
-                    )
-                  }
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData('text/plain', key);
+                    setIsDragging(true);
+                  }}
+                  onDragEnd={() => setIsDragging(false)}
                   className="flex flex-col items-center p-4 bg-gray-900 border border-transparent hover:border-green-500 rounded-lg transition-all duration-200"
                 >
                   <div
@@ -192,8 +212,7 @@ const AgentDetails = () => {
                     {tool.description}
                   </div>
                 </div>
-              );
-            })}
+              ))}
           </div>
         </div>
       </div>

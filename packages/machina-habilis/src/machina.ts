@@ -1,6 +1,6 @@
 import { type IMessageLifecycle } from './types.js';
 import type { Keypair } from '@solana/web3.js';
-import { createPrompt, generateText } from './llm.js';
+import { invokeLLM } from './llm.js';
 import { nanoid } from 'nanoid';
 import type {
   IMachinaAgent,
@@ -14,28 +14,29 @@ export class MachinaAgent implements IMachinaAgent {
   habilisServer: HabilisServer;
 
   persona: SimplePersona;
-  abilityNames: string[];
+  abilityNames: Set<string>;
   llm: ModelSettings;
   keypair: Keypair;
 
-  tools: OldowanToolDefinition[];
+  abilityMap: Map<string, OldowanToolDefinition>;
 
   constructor(habilisServer: HabilisServer, opts: IMachinaAgentOpts) {
     this.habilisServer = habilisServer;
     this.persona = opts.persona;
-    this.abilityNames = opts.abilityNames;
+    this.abilityNames = new Set(opts.abilityNames);
     this.llm = opts.llm;
     this.keypair = opts.keypair;
 
-    this.tools = habilisServer.toolsMap
-      .values()
-      .filter((tool) => this.abilityNames.includes(tool.name))
-      .toArray();
+    this.abilityMap = new Map(
+      Array.from(habilisServer.toolsMap.entries()).filter(([key]) =>
+        this.abilityNames.has(key),
+      ),
+    );
   }
 
   learnAbility(ability: OldowanToolDefinition) {
-    this.tools.push(ability);
-    this.abilityNames.push(ability.uniqueName);
+    this.abilityMap.set(ability.uniqueName, ability);
+    this.abilityNames.add(ability.uniqueName);
   }
 
   async message(
@@ -43,7 +44,7 @@ export class MachinaAgent implements IMachinaAgent {
     opts?: {
       channelId?: string;
       callback?: (lifecycle: IMessageLifecycle) => void;
-    }
+    },
   ): Promise<IMessageLifecycle> {
     let lifecycle: IMessageLifecycle = {
       agentPubkey: this.keypair.publicKey.toBase58(),
@@ -61,6 +62,14 @@ export class MachinaAgent implements IMachinaAgent {
       actionsLog: [],
     };
 
+    const tools = this.abilityMap
+      .values()
+      .toArray()
+      .map((tool) => ({
+        ...tool,
+        name: tool.uniqueName,
+      }));
+
     // If this agent has a recall memory tool, recall context from it
     if (this.habilisServer.recallContextTool) {
       // Recall context from memory server
@@ -68,7 +77,7 @@ export class MachinaAgent implements IMachinaAgent {
         this.habilisServer.recallContextTool,
         {
           lifecycle,
-        }
+        },
       );
 
       console.log('Context Results:', contextResults);
@@ -79,21 +88,20 @@ export class MachinaAgent implements IMachinaAgent {
     // Generate Text
     let continuePrompting = true;
     let openaiResponse;
+    let promptCount = 0;
+    const MAX_PROMPTS = 10;
 
-    while (continuePrompting) {
-      lifecycle.generatedPrompt = createPrompt(lifecycle);
+    while (continuePrompting && promptCount < MAX_PROMPTS) {
+      promptCount++;
 
-      openaiResponse = await generateText(
-        this.llm,
-        lifecycle.generatedPrompt,
-        this.tools
-      );
+      openaiResponse = await invokeLLM(this.llm, lifecycle, tools);
 
       console.log('OpenAI Response:', openaiResponse);
 
       if (openaiResponse?.choices[0].message.tool_calls) {
         const toolCall = openaiResponse.choices[0].message.tool_calls[0];
         const toolName = toolCall.function.name;
+        const toolCallId = toolCall.id;
         const toolArgs = JSON.parse(toolCall.function.arguments);
 
         lifecycle.output =
@@ -104,14 +112,20 @@ export class MachinaAgent implements IMachinaAgent {
 
         const toolResult = await this.habilisServer.callTool(
           toolName,
-          toolArgs
+          toolArgs,
         );
 
-        lifecycle.tools.push(
-          `Tool ${toolName} called with arguments: ${JSON.stringify(
-            toolArgs
-          )} and returned: ${JSON.stringify(toolResult)}`
-        );
+        lifecycle.tools.push({
+          type: 'function',
+          toolCall: {
+            id: toolCallId,
+            function: {
+              name: toolName,
+              arguments: JSON.stringify(toolArgs),
+            },
+          },
+          result: JSON.stringify(toolResult),
+        });
       } else {
         continuePrompting = false;
         lifecycle.output = openaiResponse?.choices[0].message.content ?? '';

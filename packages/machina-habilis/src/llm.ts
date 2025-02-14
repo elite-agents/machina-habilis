@@ -2,6 +2,7 @@ import OpenAI from 'openai';
 import type { IMessageLifecycle, ModelSettings } from './types';
 import Anthropic from '@anthropic-ai/sdk';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import type { ChatCompletionCreateParamsNonStreaming } from 'openai/resources/chat/completions.mjs';
 
 export const SYSTEM_PROMPT = `
 You are an tool-using AI agent operating within a framework that provides you with:
@@ -53,7 +54,7 @@ Remember: You are not just processing queries - you are embodying a specific ide
 export async function generateEmbeddings(
   embeddingModelSettings: ModelSettings,
   embeddingModelKey: string,
-  message: string
+  message: string,
 ): Promise<number[]> {
   switch (embeddingModelSettings?.provider) {
     case 'openai':
@@ -75,10 +76,11 @@ export async function generateEmbeddings(
   }
 }
 
-export async function generateText(
+async function generateText(
   generationModelSettings: ModelSettings,
-  userMessage: string,
-  tools: Tool[]
+  prompt: string,
+  lifecycle: IMessageLifecycle,
+  tools: Tool[],
 ): Promise<OpenAI.Chat.Completions.ChatCompletion | void> {
   switch (generationModelSettings?.provider) {
     case 'openai':
@@ -88,7 +90,7 @@ export async function generateText(
         dangerouslyAllowBrowser: true,
       });
 
-      const payload = {
+      const payload: ChatCompletionCreateParamsNonStreaming = {
         model: generationModelSettings.name,
         messages: [
           {
@@ -97,7 +99,7 @@ export async function generateText(
           },
           {
             role: 'user' as const,
-            content: userMessage,
+            content: prompt,
           },
         ],
         temperature: generationModelSettings.temperature,
@@ -120,6 +122,26 @@ export async function generateText(
               }))
             : undefined,
       };
+
+      if (lifecycle.tools.length > 0) {
+        const toolMessages = lifecycle.tools.flatMap((tool) => [
+          {
+            role: 'assistant' as const,
+            tool_calls: [
+              {
+                ...tool.toolCall,
+                type: 'function' as const,
+              },
+            ],
+          },
+          {
+            role: 'tool' as const,
+            tool_call_id: tool.toolCall.id,
+            content: tool.result,
+          },
+        ]);
+        payload.messages.push(...toolMessages);
+      }
 
       console.log('Payload:', payload);
 
@@ -150,7 +172,7 @@ export async function generateText(
   }
 }
 
-export function createPrompt(lifecycle: IMessageLifecycle): string {
+function createPrompt(lifecycle: IMessageLifecycle): string {
   return `
   <Your Name>
   ${lifecycle.agentName}
@@ -168,4 +190,13 @@ export function createPrompt(lifecycle: IMessageLifecycle): string {
   ${lifecycle.context.join('\n')}
   </Context>
   `;
+}
+
+export function invokeLLM(
+  generationModelSettings: ModelSettings,
+  lifecycle: IMessageLifecycle,
+  tools: Tool[],
+) {
+  const prompt = createPrompt(lifecycle);
+  return generateText(generationModelSettings, prompt, lifecycle, tools);
 }

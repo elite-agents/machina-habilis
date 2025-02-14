@@ -23,7 +23,21 @@ export const ZMessageLifecycle = z.object({
   agentName: z.string().default(''),
   identityPrompt: z.string().nullable(),
   context: z.array(z.string()).default([]),
-  tools: z.array(z.string()).default([]),
+  tools: z
+    .array(
+      z.object({
+        toolCall: z.object({
+          id: z.string(),
+          function: z.object({
+            name: z.string(),
+            arguments: z.string(),
+          }),
+        }),
+        result: z.string(),
+        type: z.literal('function'),
+      }),
+    )
+    .default([]),
   generatedPrompt: z.string().default(''),
   output: z.string().default(''),
   actionsLog: z.array(z.string()).default([]),
@@ -55,7 +69,7 @@ export interface IHabilisServer {
 
 export type IMachinaAgentOpts = {
   persona: SimplePersona;
-  abilityNames: string[];
+  abilityNames: Set<string>;
   llm: ModelSettings;
   keypair: Keypair;
 };
@@ -63,7 +77,7 @@ export type IMachinaAgentOpts = {
 export interface IMachinaAgent extends IMachinaAgentOpts {
   // Properties
   habilisServer: IHabilisServer;
-  tools: OldowanToolDefinition[];
+  abilityMap: Map<string, OldowanToolDefinition>;
 
   // Methods
   message(
@@ -71,7 +85,7 @@ export interface IMachinaAgent extends IMachinaAgentOpts {
     opts?: {
       channelId?: string;
       context?: boolean;
-    }
+    },
   ): Promise<IMessageLifecycle>;
 
   learnAbility(ability: OldowanToolDefinition): void;

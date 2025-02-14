@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAgents } from '../context/AgentContext';
+import { IMessageLifecycle } from '@elite-agents/machina-habilis';
 
 interface IChatHistory {
   id: number;
@@ -15,6 +16,16 @@ const ChatInterface = () => {
   useEffect(() => {
     setChatHistory([]);
   }, [selectedAgent]);
+
+  const handleAgentResponse = (chatResponse: IMessageLifecycle) => {
+    const agentResponse: IChatHistory = {
+      id: Date.now() + 1,
+      content: chatResponse?.output as string,
+      sender: 'agent',
+      timestamp: new Date().toISOString(),
+    };
+    setChatHistory((prev) => [...prev, agentResponse]);
+  };
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
@@ -35,16 +46,13 @@ const ChatInterface = () => {
       newMessage.content,
       {
         channelId: 'machina-habilis-builder',
+        callback: handleAgentResponse,
       },
     );
 
-    const agentResponse: IChatHistory = {
-      id: Date.now() + 1,
-      content: chatResponse?.output as string,
-      sender: 'agent',
-      timestamp: new Date().toISOString(),
-    };
-    setChatHistory((prev) => [...prev, agentResponse]);
+    if (chatResponse) {
+      handleAgentResponse(chatResponse);
+    }
   };
 
   return (

@@ -33,7 +33,7 @@ interface AgentContextType {
   setSelectedAgent: (agent: Agent | null) => void;
   createAgent: (name: string) => Promise<void>;
   updateAgent: (id: number, updates: Partial<Agent>) => void;
-  habilisServerTools: OldowanToolDefinition[];
+  habilisServerTools: Map<string, OldowanToolDefinition>;
 }
 
 const AgentContext = createContext<AgentContextType>({
@@ -42,7 +42,7 @@ const AgentContext = createContext<AgentContextType>({
   setSelectedAgent: () => {},
   createAgent: async () => {},
   updateAgent: () => {},
-  habilisServerTools: [],
+  habilisServerTools: new Map(),
 });
 
 interface AgentProviderProps {
@@ -69,13 +69,13 @@ export function AgentProvider({ children }: AgentProviderProps) {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [habilisServerTools, setHabilisServerTools] = useState<
-    OldowanToolDefinition[]
-  >([]);
+    Map<string, OldowanToolDefinition>
+  >(new Map());
 
   useEffect(() => {
     async function init() {
       await habilisServer.init(['http://localhost:3003/sse']);
-      setHabilisServerTools(Array.from(habilisServer.toolsMap.values()));
+      setHabilisServerTools(habilisServer.toolsMap);
     }
     init();
   }, []);
