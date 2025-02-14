@@ -8,7 +8,7 @@
     "build:all": "bun install && bun build ./src/index.ts --target node --outdir ./dist && bun run build:types",
     "dev": "bun run build:all --watch",
     "build:types": "tsc --emitDeclarationOnly",
-    "publish": "bun run prepare && npm publish --access=public"
+    "publish": "npm publish --access=public"
   },
   "dependencies": {
     "@elite-agents/oldowan": "*",

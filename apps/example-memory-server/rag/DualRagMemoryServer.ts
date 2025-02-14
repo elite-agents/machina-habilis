@@ -72,6 +72,8 @@ export class DualRagMemoryServer {
         return lifecycle;
       }
 
+      console.log('Inserting knowledge', { lifecycle });
+
       const simpleRagMsgToInsert = `
   # User Message
   ${lifecycle.message}
