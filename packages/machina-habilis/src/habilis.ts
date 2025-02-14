@@ -23,6 +23,30 @@ export class HabilisServer implements IHabilisServer {
     this.memoryServerUrl = memoryServerUrl;
   }
 
+  private async handleConnectionError(
+    error: Error,
+    client: Client,
+    url: string,
+  ) {
+    console.error(`Error from MCP server ${url}:`, error);
+    console.log(
+      `Disconnected from MCP server ${url}, attempting to reconnect...`,
+    );
+
+    let reconnected = false;
+    while (!reconnected) {
+      try {
+        await client.connect(new SSEClientTransport(new URL(url)));
+        console.log(`Successfully reconnected to MCP server ${url}`);
+        reconnected = true;
+      } catch (error) {
+        console.error(`Failed to reconnect to MCP server ${url}:`, error);
+        // Wait 5 seconds before trying again
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+      }
+    }
+  }
+
   async init(mcpServers: string[]) {
     console.log('Initializing Habilis Server with the following MCP servers:', [
       this.memoryServerUrl,
@@ -62,12 +86,48 @@ export class HabilisServer implements IHabilisServer {
 
       try {
         await client.connect(new SSEClientTransport(new URL(url)));
-      } catch (error) {
-        console.error(`Failed to connect to MCP server ${url}:`, error);
-        return [];
-      }
+        console.log('Connected to MCP server:', url);
 
-      console.log('Connected to MCP server:', url);
+        // Set up error handlers
+        if (client.transport) {
+          client.transport.onerror = (error) => {
+            this.handleConnectionError(error, client, url);
+          };
+          client.transport.onclose = () => {
+            console.log('Disconnected from MCP server:', url);
+            this.handleConnectionError(new Error('Disconnected'), client, url);
+          };
+        }
+
+        client.onerror = (error) => {
+          this.handleConnectionError(error, client, url);
+        };
+
+        client.onclose = () => {
+          console.log('Disconnected from MCP server:', url);
+          this.handleConnectionError(new Error('Disconnected'), client, url);
+        };
+      } catch (error) {
+        let retries = 0;
+        const maxRetries = 3;
+        while (retries < maxRetries) {
+          try {
+            await client.connect(new SSEClientTransport(new URL(url)));
+            break;
+          } catch (err) {
+            retries++;
+            if (retries === maxRetries) {
+              console.error(
+                `Failed to connect to MCP server ${url} after ${maxRetries} attempts:`,
+                error,
+              );
+              return [];
+            }
+            console.warn(`Connection attempt ${retries} failed, retrying...`);
+            await new Promise((resolve) => setTimeout(resolve, 1000 * retries)); // Exponential backoff
+          }
+        }
+      }
 
       let versionInfo;
       try {
