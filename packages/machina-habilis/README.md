@@ -53,7 +53,7 @@ const agent = new MachinaAgent(habilisServer, {
 ```typescript
 const response = await agent.message(
   "What's the latest progress in AI alignment?",
-  { channelId: 'research-discussions' }
+  { channelId: 'research-discussions' },
 );
 
 console.log(response.output);
@@ -145,7 +145,3 @@ Habilis works with any MCP-compliant server created with [Oldowan](https://githu
 - Automatic tool discovery
 - Secure communication channel
 - Context-aware request routing
-
-## License
-
-MIT © [Elite Agents](https://github.com/elite-agents)

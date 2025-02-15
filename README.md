@@ -2,19 +2,21 @@
 
 **Machina Habilis** is an evolutionary step in AI agent development - a TypeScript framework enabling sophisticated tool usage through the Model Context Protocol (MCP). Named after the Homo Habilis, humanity's first tool-using species, it comprises three core components:
 
-1. **🪨 @elite-agents/oldowan** - Foundational tool server implementation
-2. **🛠️ @elite-agents/machina-habilis** - Advanced agent framework with:
+1. **🪨 @elite-agents/oldowan** - Foundational tool server implementation that allows you to quickly build custom agent tools or wrap existing APIs into MCP-compatible tools
+2. **🛠️ @elite-agents/machina-habilis** - Tool-first agent library with:
    - `HabilisServer`: Infrastructure layer for tool management
    - `MachinaAgent`: Cognitive layer for conversation handling
-3. **🧠 @elite-agents/mnemon** - Memory management system combining vector search and knowledge graph capabilities to enhance conversational context, featuring dual RAG architecture, contextual message recall, AI-integrated embeddings, and multi-tenancy support.
+3. **🧠 @elite-agents/mnemon** - Memory MCP server that allows you to store and retrieve memories from a variety of storage systems
 
 ```mermaid
 graph TD
-    A[MachinaAgent] -->|Uses| B[HabilisServer]
-    B -->|MCP| C[Oldowan Tools]
-    B -->|MCP| D[3rd-party Tools]
-    C --> E[External APIs]
-    D --> F[Other Services]
+    A[MachinaAgent] -->|Talks Via| B[HabilisServer]
+    B -->|MCP| C[Oldowan Tools Server]
+    B -->|MCP| D[3rd-party Tools Server]
+    B -->|MCP| E[Mnemon Memory Server]
+    C --> F[External APIs]
+    D --> G[Other Services]
+    E --> H[Custom Memory System]
 ```
 
 ## Features
@@ -26,26 +28,7 @@ graph TD
 - **Secure Protocol**  
   End-to-end encrypted tool communications
 - **Multi-Model Runtime**  
-  OpenAI, Anthropic, Local LLM support
-
-## Core Components
-
-### `@elite-agents/machina-habilis` (Agent Framework)
-
-```bash
-bun add @elite-agents/machina-habilis
-```
-
-- **HabilisServer** - Infrastructure service layer:
-  - Manages MCP connections
-  - Catalogs available tools
-  - Handles cross-server communication
-- **MachinaAgent** - Cognitive conversation layer:
-  - LLM interaction pipelines
-  - Contextual memory management
-  - Persona-driven behavior
-
-### `@elite-agents/oldowan` (Tool Server)
+  OpenAI, Anthropic, Google, etc.
 
 ```bash
 bun add @elite-agents/oldowan
@@ -56,6 +39,31 @@ bun add @elite-agents/oldowan
 - Zero-config proxy setup
 
 ## Quick Start
+
+1. **Install dependencies**:
+
+```bash
+bun install
+```
+
+2. **Start core services** (from repository root):
+
+```bash
+docker compose up --build
+```
+
+3. **Launch builder UI**:
+
+```bash
+cd apps/machina-habilis-builder
+bun dev
+```
+
+Access the development environment at `http://localhost:5173`
+
+> **Note**: Requires [Docker](https://docker.com) and [Bun](https://bun.sh) installed
+
+## Using The Framework
 
 1. **Create Agent**:
 
@@ -133,7 +141,7 @@ sequenceDiagram
     MachinaAgent-->>User: Final response
 ```
 
-## Why Habilis?
+## Why Machina Habilis?
 
 1. **Evolutionary Architecture**  
    Clear separation between infrastructure and cognition layers
@@ -149,4 +157,4 @@ sequenceDiagram
 
 ## License
 
-MIT © [Elite Agents](https://github.com/elite-agents)
+GPL-3.0 © [Elite Agents](https://github.com/elite-agents)
