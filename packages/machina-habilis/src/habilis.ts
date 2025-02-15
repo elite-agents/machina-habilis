@@ -6,6 +6,7 @@ import {
   GET_CONTEXT_FROM_QUERY_TOOL_NAME,
   INSERT_KNOWLEDGE_TOOL_NAME,
 } from './constants';
+import { deriveToolUniqueName } from '@elite-agents/oldowan';
 
 export class HabilisServer implements IHabilisServer {
   memoryServerUrl: string;
@@ -150,15 +151,8 @@ export class HabilisServer implements IHabilisServer {
         return [];
       }
 
-      // Normalize server name by replacing any non-alphanumeric/hyphen characters with hyphens
-      // This ensures the server name can be safely used as part of tool identifiers
-      const normalizedServerName = `${serverName.replace(
-        /[^a-zA-Z0-9-]+/g,
-        '-',
-      )}`;
-
       const toolsAdded = tools.map((tool) => {
-        const toolName = `${normalizedServerName}_${tool.name}`;
+        const toolName = deriveToolUniqueName(serverName, tool.name);
 
         this.toolsMap.set(toolName, {
           ...tool,

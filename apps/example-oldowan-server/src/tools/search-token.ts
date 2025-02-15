@@ -20,7 +20,9 @@ export const searchTokenTool = new OldowanTool<typeof searchTokenSchema>({
       throw new Error('No tokens found');
     }
 
-    const token = response.find((token) => token.symbol === input.query);
+    const token = response.find(
+      (token) => token.symbol === input.query.toUpperCase(),
+    );
 
     if (!token) {
       throw new Error(`Token not found: ${input.query}`);

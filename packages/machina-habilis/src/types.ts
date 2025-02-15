@@ -1,17 +1,10 @@
 import type { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import type { Keypair } from '@solana/web3.js';
-import type { Tool } from '@modelcontextprotocol/sdk/types.js';
-import type { Ability, SimplePersona } from './persona';
+import type { SimplePersona } from './persona';
+import type { OldowanToolDefinition } from '@elite-agents/oldowan';
 import * as z from 'zod';
 
-export type OldowanToolDefinition = Tool & {
-  uniqueName: string;
-  serverUrl: string;
-  tokenGate?: {
-    mint: string;
-    amount: bigint;
-  };
-};
+export type { OldowanToolDefinition };
 
 export const ZMessageLifecycle = z.object({
   agentPubkey: z.string(),
