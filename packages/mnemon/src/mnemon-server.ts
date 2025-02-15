@@ -16,8 +16,7 @@ export type InsertKnowledgeFn = (
 
 export class MnemonServer extends OldowanServer {
   constructor(opts: {
-    proxyPort?: number;
-    ssePort?: number;
+    port?: number;
     getContextFromQuery: GetContextFn;
     insertKnowledge: InsertKnowledgeFn;
   }) {
@@ -45,8 +44,7 @@ export class MnemonServer extends OldowanServer {
 
     super('Mnemon Server', '1.0.0', {
       tools: [getContextFromQueryTool, insertKnowledgeTool],
-      proxyPort: opts.proxyPort,
-      ssePort: opts.ssePort,
+      port: opts.port,
     });
   }
 }

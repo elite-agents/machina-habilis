@@ -7,8 +7,7 @@ services:
       dockerfile: OldowanServer.Dockerfile
     restart: on-failure
     ports:
-      - '3003:3003' # mem server proxy
-      - '6003:6003' # mem server sse
+      - '3003:3003'
     networks:
       - machina-habilis-network
   memory-server:
@@ -17,8 +16,7 @@ services:
       dockerfile: MemoryServer.Dockerfile
     restart: on-failure
     ports:
-      - '3002:3002' # mem server proxy
-      - '6002:6002' # mem server sse
+      - '3002:3002'
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
     networks:

@@ -5,6 +5,7 @@ try {
     ...oldowanServer,
     idleTimeout: 255,
   });
+  console.log(`Oldowan Server started on port ${oldowanServer.port}`);
 } catch (e) {
   console.error(e);
 }

@@ -27,12 +27,9 @@ const rag = new DualRagMemoryServer(
 await rag.init();
 
 const mnemon = new MnemonServer({
-  proxyPort: 3002,
-  ssePort: 6002,
+  port: 3002,
   getContextFromQuery: rag.getContextFromQuery.bind(rag),
   insertKnowledge: rag.insertKnowledge.bind(rag),
 });
 
-const proxyServer = await mnemon.getProxy();
-
-export default proxyServer;
+export default mnemon.sseServer;

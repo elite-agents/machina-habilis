@@ -4,10 +4,7 @@ import { OldowanServer } from '@elite-agents/oldowan';
 
 const oldowan = new OldowanServer('example-oldowan-server', '0.0.1', {
   tools: [searchTokenTool, blinkSwapTool],
-  proxyPort: 3003,
-  ssePort: 6003,
+  port: 3003,
 });
 
-const proxyServer = await oldowan.getProxy();
-
-export default proxyServer;
+export default oldowan.sseServer;
