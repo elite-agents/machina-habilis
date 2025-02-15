@@ -1,13 +1,15 @@
 {
   "name": "@elite-agents/oldowan",
   "module": "src/index.ts",
+  "version": "0.0.8",
   "type": "module",
   "scripts": {
     "build": "bun build ./src/index.ts --outdir ./dist --target bun && bun run build:types",
     "build:all": "bun install && bun build ./src/index.ts --outdir ./dist --target node && bun run build:types",
     "dev": "bun run build:all --watch",
     "build:types": "tsc --emitDeclarationOnly --declaration --outDir dist",
-    "publish": "bun run prepare && npm publish --access=public"
+    "publish": "bun run build && npm publish --access=public",
+    "publish:dry": "bun run build && npm pack --dry-run"
   },
   "devDependencies": {
     "@types/bun": "latest"
@@ -21,6 +23,7 @@
     "mcp-proxy": "^2.4.0",
     "zod": "^3.24.1"
   },
+  "files": ["dist"],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts"
 }
