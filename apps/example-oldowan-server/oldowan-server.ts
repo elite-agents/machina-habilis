@@ -7,4 +7,4 @@ const oldowan = new OldowanServer('example-oldowan-server', '0.0.1', {
   port: 3003,
 });
 
-export default oldowan.sseServer;
+export default oldowan.honoServer;

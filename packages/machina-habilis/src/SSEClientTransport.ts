@@ -1,9 +1,9 @@
-import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
+import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import {
   type JSONRPCMessage,
   JSONRPCMessageSchema,
-} from "@modelcontextprotocol/sdk/types.js";
-import { EventSource } from "eventsource"; // The MCP SDK doesn't have this import statement so we need to duplicate the class below and import it
+} from '@modelcontextprotocol/sdk/types.js';
+import { EventSource } from 'eventsource'; // The MCP SDK doesn't have this import statement so we need to duplicate the class below and import it
 
 /**
  * Client transport for SSE: this will connect to a server using Server-Sent Events for receiving
@@ -25,7 +25,7 @@ export class SSEClientTransport implements Transport {
 
   constructor(
     url: URL,
-    opts?: { eventSourceInit?: EventSourceInit; requestInit?: RequestInit }
+    opts?: { eventSourceInit?: EventSourceInit; requestInit?: RequestInit },
   ) {
     this._url = url;
     this._eventSourceInit = opts?.eventSourceInit;
@@ -35,19 +35,19 @@ export class SSEClientTransport implements Transport {
   start(): Promise<void> {
     if (this._eventSource) {
       throw new Error(
-        "SSEClientTransport already started! If using Client class, note that connect() calls start() automatically."
+        'SSEClientTransport already started! If using Client class, note that connect() calls start() automatically.',
       );
     }
 
     return new Promise((resolve, reject) => {
       this._eventSource = new EventSource(
         this._url.href,
-        this._eventSourceInit
+        this._eventSourceInit,
       );
       this._abortController = new AbortController();
       this._eventSource.onerror = (event) => {
         const error = new Error(
-          `SSE error: ${event.message || "Unknown error"}`
+          `SSE error: ${event.message || 'Unknown error'}`,
         );
         reject(error);
         this.onerror?.(error);
@@ -57,14 +57,14 @@ export class SSEClientTransport implements Transport {
         // The connection is open, but we need to wait for the endpoint to be received.
       };
 
-      this._eventSource.addEventListener("endpoint", (event: Event) => {
+      this._eventSource.addEventListener('endpoint', (event: Event) => {
         const messageEvent = event as MessageEvent;
 
         try {
           this._endpoint = new URL(messageEvent.data, this._url);
           if (this._endpoint.origin !== this._url.origin) {
             throw new Error(
-              `Endpoint origin does not match connection origin: ${this._endpoint.origin}`
+              `Endpoint origin does not match connection origin: ${this._endpoint.origin}`,
             );
           }
         } catch (error) {
@@ -99,17 +99,18 @@ export class SSEClientTransport implements Transport {
     this.onclose?.();
   }
 
+  // send to MCP Server
   async send(message: JSONRPCMessage): Promise<void> {
     if (!this._endpoint) {
-      throw new Error("Not connected");
+      throw new Error('Not connected');
     }
 
     try {
       const headers = new Headers(this._requestInit?.headers);
-      headers.set("content-type", "application/json");
+      headers.set('content-type', 'application/json');
       const init = {
         ...this._requestInit,
-        method: "POST",
+        method: 'POST',
         headers,
         body: JSON.stringify(message),
         signal: this._abortController?.signal,
@@ -120,7 +121,7 @@ export class SSEClientTransport implements Transport {
       if (!response.ok) {
         const text = await response.text().catch(() => null);
         throw new Error(
-          `Error POSTing to endpoint (HTTP ${response.status}): ${text}`
+          `Error POSTing to endpoint (HTTP ${response.status}): ${text}`,
         );
       }
     } catch (error) {

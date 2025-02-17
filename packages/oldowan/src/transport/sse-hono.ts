@@ -5,14 +5,16 @@ import {
   JSONRPCMessageSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { v4 as randomUUID } from 'uuid';
-import { SSEStreamingApi } from 'hono/streaming';
-/**
+import { SSEStreamingApi, streamSSE } from 'hono/streaming';
+import type { MCPServerLike } from '../types';
+import { Hono } from 'hono';
+import { cors } from 'hono/cors';
+
 /**
  * Server transport for SSE: this will send messages over an SSE connection and receive messages from HTTP POST requests.
  *
  */
 export class SSEServerTransportHono implements Transport {
-  private _sseStream?: SSEStreamingApi;
   private _sessionId: string;
 
   onclose?: () => void;
@@ -35,21 +37,13 @@ export class SSEServerTransportHono implements Transport {
    * This should be called when a GET request is made to establish the SSE stream.
    */
   async start(): Promise<void> {
-    if (this._sseStream) {
-      throw new Error(
-        'SSEServerTransport already started! If using Server class, note that connect() calls start() automatically.',
-      );
-    }
-
     // Send the endpoint event
-    this.stream.write(
-      `event: endpoint\ndata: ${encodeURI(this._endpoint)}?sessionId=${this._sessionId}\n\n`,
-    );
-
-    this._sseStream = this.stream;
+    this.stream.writeSSE({
+      event: 'endpoint',
+      data: `${encodeURI(this._endpoint)}?sessionId=${this._sessionId}`,
+    });
 
     this.stream.onAbort(() => {
-      this._sseStream = undefined;
       this.onclose?.();
     });
   }
@@ -60,13 +54,6 @@ export class SSEServerTransportHono implements Transport {
    * This should be called when a POST request is made to send a message to the server.
    */
   async handlePostMessage(context: Context): Promise<void> {
-    if (!this._sseStream) {
-      const message = 'SSE connection not established';
-      context.status(500);
-      context.body(message);
-      throw new Error(message);
-    }
-
     let body: string | unknown;
     try {
       const ct = context.req.header('content-type');
@@ -104,19 +91,14 @@ export class SSEServerTransportHono implements Transport {
   }
 
   async close(): Promise<void> {
-    await this._sseStream?.close();
-    this._sseStream = undefined;
+    await this.stream.close();
     this.onclose?.();
   }
 
   async send(message: JSONRPCMessage): Promise<void> {
-    if (!this._sseStream) {
-      throw new Error('Not connected');
-    }
-
     console.debug(`[Session ID: ${this._sessionId}] Sending message`, message);
 
-    this._sseStream.writeSSE({
+    this.stream.writeSSE({
       event: 'message',
       data: JSON.stringify(message),
     });
@@ -131,3 +113,99 @@ export class SSEServerTransportHono implements Transport {
     return this._sessionId;
   }
 }
+
+export const createSseServerHono = (opts: {
+  server: MCPServerLike;
+  endpoint?: string;
+}) => {
+  const endpoint = opts.endpoint ?? '/sse';
+  const { server } = opts;
+  const activeTransports: Record<string, SSEServerTransportHono> = {};
+  const app = new Hono();
+
+  app.use(
+    '*',
+    cors({
+      origin: '*',
+      allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      allowHeaders: ['Content-Type', 'Authorization'],
+      exposeHeaders: ['Content-Length'],
+    }),
+  );
+
+  // Preflight handler
+  app.options('*', (c) => c.text('ok'));
+
+  app.get('/ping', (c) => {
+    console.log('ping request received');
+    return c.text('pong');
+  });
+
+  app.use(`${endpoint}/*`, async (c, next) => {
+    c.header('Content-Type', 'text/event-stream');
+    c.header('Cache-Control', 'no-cache');
+    c.header('Connection', 'keep-alive');
+    await next();
+  });
+
+  app.get(endpoint, async (c) => {
+    return streamSSE(c, async (stream) => {
+      console.log('SSE connection received');
+      const transport = new SSEServerTransportHono('/messages', stream);
+      activeTransports[transport.sessionId] = transport;
+      console.log(
+        `SSE connection established for session ${transport.sessionId}`,
+      );
+
+      await server.connect(transport);
+
+      await transport.send({
+        jsonrpc: '2.0',
+        method: 'sse/connection',
+        params: { message: 'SSE Connection established' },
+      });
+
+      // Keep the connection open by returning a never-resolving promise
+      return new Promise<void>((resolve) => {
+        stream.onAbort(() => {
+          console.log(
+            `SSE connection closed for session ${transport.sessionId}`,
+          );
+          delete activeTransports[transport.sessionId];
+          resolve();
+        });
+      });
+    });
+  });
+
+  app.post('/messages', async (c) => {
+    const sessionId = new URL(
+      c.req.url,
+      'https://example.com',
+    ).searchParams.get('sessionId');
+
+    if (!sessionId) {
+      c.status(400);
+      return c.text('No sessionId');
+    }
+
+    const activeTransport = activeTransports[sessionId];
+    if (!activeTransport) {
+      c.status(400);
+      return c.text('No active transport');
+    }
+
+    try {
+      await activeTransport.handlePostMessage(c);
+    } catch (error) {
+      console.error('Error handling POST message:', error);
+      c.status(400);
+      return c.text('Error handling POST message');
+    }
+
+    c.status(202);
+    return c.body('Accepted');
+  });
+
+  return app;
+};

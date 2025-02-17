@@ -69,7 +69,7 @@ const server = new RestApiWrappedOldowanServer(sqliteDb, {
   port: PORT,
 });
 
-server.restApiServer.post('/create-tool', async (c) => {
+server.honoServer.post('/create-tool', async (c) => {
   let parsedEndpointDefinition: IEndpointDefinition;
   try {
     const endpointDefinition = await c.req.json();
@@ -101,7 +101,7 @@ server.restApiServer.post('/create-tool', async (c) => {
 
 Bun.serve({
   port: PORT,
-  fetch: server.restApiServer.fetch,
+  fetch: server.honoServer.fetch,
   idleTimeout: 255,
 });
 
