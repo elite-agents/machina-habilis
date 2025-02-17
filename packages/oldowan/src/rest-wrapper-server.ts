@@ -5,20 +5,20 @@ import type {
   IOldowanServer,
   IRestApiWrappedOldowanTool,
   IRestApiWrappedOldowanToolRepository,
-  OldowanSseServer,
   ToolSchemaProperties,
 } from './types';
 import { CallToolRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
-import { createSseServerHono } from './utils';
-import type { Hono } from 'hono';
+import { createSseServerHono } from './transport/sse-hono';
+import type { HonoServerWithPort } from './types';
+import { createRestServerHono } from './transport/rest-http';
 
 const DEFAULT_PORT = 6004;
 const DEFAULT_ENDPOINT = '/sse';
 
 export class RestApiWrappedOldowanServer implements IOldowanServer {
-  sseServer: OldowanSseServer;
-  restApiServer: Hono;
+  sseServer: HonoServerWithPort;
+  restApiServer: HonoServerWithPort;
   mcpServer: Server;
   toolRepository: IRestApiWrappedOldowanToolRepository;
 
@@ -56,16 +56,24 @@ export class RestApiWrappedOldowanServer implements IOldowanServer {
 
     this.mcpServer.setRequestHandler(CallToolRequestSchema, callToolHandler);
 
-    this.restApiServer = createSseServerHono({
-      server: this.mcpServer,
-      port: opts?.port ?? DEFAULT_PORT,
-      endpoint: opts?.endpoint ?? DEFAULT_ENDPOINT,
-    });
+    const port = opts?.port ?? DEFAULT_PORT;
+    const endpoint = opts?.endpoint ?? DEFAULT_ENDPOINT;
 
-    this.sseServer = {
-      fetch: this.restApiServer.fetch,
-      port: opts?.port ?? DEFAULT_PORT,
-    };
+    this.sseServer = Object.assign(
+      createSseServerHono({
+        server: this.mcpServer,
+        port,
+        endpoint,
+      }),
+      { port },
+    );
+
+    this.restApiServer = Object.assign(
+      createRestServerHono({
+        server: this.mcpServer,
+      }),
+      { port },
+    );
   }
 
   addTool(tool: RestApiWrappedOldowanTool) {

@@ -1,3 +1,4 @@
+import type { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import type { Hono } from 'hono';
 import { z } from 'zod';
@@ -51,8 +52,8 @@ export type OldowanSseServer = {
 };
 
 export interface IOldowanServer {
-  sseServer: OldowanSseServer;
-  restApiServer: Hono;
+  sseServer: HonoServerWithPort;
+  restApiServer: HonoServerWithPort;
 }
 
 export interface IRestApiWrappedOldowanTool extends OldowanToolDefinition {
@@ -106,3 +107,12 @@ export interface IEndpointDefinitionRepository
 
 export interface IRestApiWrappedOldowanToolRepository
   extends IRepository<IRestApiWrappedOldowanTool> {}
+
+export type MCPServerLike = {
+  connect: Server['connect'];
+  close: Server['close'];
+};
+
+export type HonoServerWithPort = Hono & {
+  port: number;
+};
