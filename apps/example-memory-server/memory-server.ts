@@ -32,4 +32,4 @@ const mnemon = new MnemonServer({
   insertKnowledge: rag.insertKnowledge.bind(rag),
 });
 
-export default mnemon.sseServer;
+export default mnemon.honoServer;

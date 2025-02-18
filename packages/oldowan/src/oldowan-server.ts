@@ -1,8 +1,13 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { OldowanTool } from './oldowan-tool';
-import type { IOldowanServer, OldowanSseServer } from './types';
-import { createSseServerHono } from './utils';
-import type { Hono } from 'hono';
+import type {
+  HonoServerWithPort,
+  IOldowanServer,
+  OldowanSseServer,
+} from './types';
+import { createSseServerHono } from './transport/sse-hono';
+import { Hono } from 'hono';
+import { createRestServerHono } from './transport/rest-http';
 
 // Port for the SSE server that handles MCP protocol communication
 const DEFAULT_PORT = 8888;
@@ -10,8 +15,7 @@ const DEFAULT_PORT = 8888;
 export class OldowanServer implements IOldowanServer {
   private mcpServer: McpServer;
   private port: number;
-  sseServer: OldowanSseServer;
-  restApiServer: Hono;
+  honoServer: HonoServerWithPort;
 
   constructor(
     name: string,
@@ -32,14 +36,18 @@ export class OldowanServer implements IOldowanServer {
       this.mcpServer.tool(tool.name, tool.description, tool.schema, tool.call);
     });
 
-    this.restApiServer = createSseServerHono({
+    const sseServer = createSseServerHono({
       server: this.mcpServer,
-      port: this.port,
     });
 
-    this.sseServer = {
-      fetch: this.restApiServer.fetch,
-      port: this.port,
-    };
+    const restApiServer = createRestServerHono({
+      server: this.mcpServer,
+    });
+
+    const honoServer = new Hono();
+    honoServer.route('', restApiServer);
+    honoServer.route('', sseServer);
+
+    this.honoServer = Object.assign(honoServer, { port: this.port });
   }
 }
