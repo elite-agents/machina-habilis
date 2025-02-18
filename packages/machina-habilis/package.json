@@ -1,6 +1,6 @@
 {
   "name": "@elite-agents/machina-habilis",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "module": "src/index.ts",
   "type": "module",
   "scripts": {
@@ -8,7 +8,7 @@
     "build:all": "bun install && bun build ./src/index.ts --outdir ./dist && bun run build:types",
     "dev": "bun run build:all --watch",
     "build:types": "tsc --emitDeclarationOnly",
-    "publish": "bun run prepare && npm publish --access=public"
+    "publish": "npm publish --access=public"
   },
   "devDependencies": {
     "@types/bun": "latest",
