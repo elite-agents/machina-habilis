@@ -44,6 +44,7 @@ export class MachinaAgent implements IMachinaAgent {
     opts?: {
       channelId?: string;
       callback?: (lifecycle: IMessageLifecycle) => void;
+      streamTextHandler?: (text: string) => void;
     },
   ): Promise<IMessageLifecycle> {
     let lifecycle: IMessageLifecycle = {
@@ -94,7 +95,12 @@ export class MachinaAgent implements IMachinaAgent {
     while (continuePrompting && promptCount < MAX_PROMPTS) {
       promptCount++;
 
-      openaiResponse = await invokeLLM(this.llm, lifecycle, tools);
+      openaiResponse = await invokeLLM(
+        this.llm,
+        lifecycle,
+        tools,
+        opts?.streamTextHandler,
+      );
 
       console.log('OpenAI Response:', openaiResponse);
 

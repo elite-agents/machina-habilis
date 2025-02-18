@@ -81,6 +81,7 @@ async function generateText(
   prompt: string,
   lifecycle: IMessageLifecycle,
   tools: Tool[],
+  streamTextHandler?: (text: string) => void,
 ): Promise<OpenAI.Chat.Completions.ChatCompletion | void> {
   switch (generationModelSettings?.provider) {
     case 'openai':
@@ -145,9 +146,44 @@ async function generateText(
 
       console.log('Payload:', payload);
 
-      const openaiResponse = await openai.chat.completions.create(payload);
+      let openaiResponse:
+        | Partial<OpenAI.Chat.Completions.ChatCompletion>
+        | undefined = {};
+      if (streamTextHandler) {
+        const stream = await openai.chat.completions.create({
+          ...payload,
+          stream: true,
+        });
+        let allText = '';
+        for await (const chunk of stream) {
+          if (!openaiResponse?.id) {
+            openaiResponse =
+              chunk as unknown as OpenAI.Chat.Completions.ChatCompletion;
+          }
 
-      return openaiResponse;
+          const text = chunk.choices[0]?.delta?.content || '';
+          allText += text;
+          streamTextHandler(text);
+        }
+
+        // Construct the same response format as non-streaming
+        openaiResponse.choices = [
+          {
+            index: 0,
+            logprobs: null,
+            message: {
+              role: 'assistant',
+              content: allText,
+              refusal: null,
+            },
+            finish_reason: 'stop',
+          },
+        ];
+      } else {
+        openaiResponse = await openai.chat.completions.create(payload);
+      }
+
+      return openaiResponse as OpenAI.Chat.Completions.ChatCompletion;
     case 'anthropic':
       // const anthropic = new Anthropic({
       //   apiKey: generationModelKey,
@@ -196,7 +232,14 @@ export function invokeLLM(
   generationModelSettings: ModelSettings,
   lifecycle: IMessageLifecycle,
   tools: Tool[],
+  streamTextHandler?: (chunk: any) => void, // Add stream handler
 ) {
   const prompt = createPrompt(lifecycle);
-  return generateText(generationModelSettings, prompt, lifecycle, tools);
+  return generateText(
+    generationModelSettings,
+    prompt,
+    lifecycle,
+    tools,
+    streamTextHandler,
+  );
 }
