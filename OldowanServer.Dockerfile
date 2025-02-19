@@ -7,8 +7,8 @@ COPY ./ .
 RUN bun install
 
 # Build packages in dependency order
-RUN bun run --filter @elite-agents/machina-habilis build
 RUN bun run --filter @elite-agents/oldowan build
+RUN bun run --filter @elite-agents/machina-habilis build
 
 # Setup for running
 WORKDIR /app/apps/example-oldowan-server
