@@ -149,24 +149,70 @@ async function generateText(
       let openaiResponse:
         | Partial<OpenAI.Chat.Completions.ChatCompletion>
         | undefined = {};
+
       if (streamTextHandler) {
+        // Create a streaming completion with the same payload
         const stream = await openai.chat.completions.create({
           ...payload,
           stream: true,
         });
+
+        // Track both the accumulated text and tool calls across chunks
         let allText = '';
+        let toolCalls: any[] = [];
+        let currentToolCall: any = null;
+
+        // Process each chunk from the stream
         for await (const chunk of stream) {
+          // Store the initial response metadata (id, etc.)
           if (!openaiResponse?.id) {
             openaiResponse =
               chunk as unknown as OpenAI.Chat.Completions.ChatCompletion;
           }
 
-          const text = chunk.choices[0]?.delta?.content || '';
-          allText += text;
-          streamTextHandler(text);
+          const delta = chunk.choices[0]?.delta;
+
+          // Handle tool calls that come in chunks
+          if (delta?.tool_calls) {
+            const toolCall = delta.tool_calls[0];
+
+            // Start a new tool call if we don't have one in progress
+            if (!currentToolCall) {
+              currentToolCall = {
+                id: toolCall.id,
+                type: 'function',
+                function: {
+                  name: toolCall.function?.name || '',
+                  arguments: toolCall.function?.arguments || '',
+                },
+              };
+              toolCalls.push(currentToolCall);
+            } else {
+              // Append to existing tool call (arguments often come in multiple chunks)
+              if (toolCall.function?.arguments) {
+                currentToolCall.function.arguments +=
+                  toolCall.function.arguments;
+              }
+              if (toolCall.function?.name) {
+                currentToolCall.function.name = toolCall.function.name;
+              }
+            }
+          }
+
+          // Handle content chunks and stream to UI
+          if (delta?.content) {
+            allText += delta.content;
+            streamTextHandler(delta.content);
+          }
+
+          // Reset current tool call when it's complete
+          if (chunk.choices[0]?.finish_reason === 'tool_calls') {
+            currentToolCall = null;
+          }
         }
 
-        // Construct the same response format as non-streaming
+        // Construct a non-streaming style response for compatibility
+        // This ensures the rest of the system works the same way for both streaming and non-streaming
         openaiResponse.choices = [
           {
             index: 0,
@@ -175,11 +221,14 @@ async function generateText(
               role: 'assistant',
               content: allText,
               refusal: null,
+              tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
             },
-            finish_reason: 'stop',
+            // Set finish reason based on whether we used tools
+            finish_reason: toolCalls.length > 0 ? 'tool_calls' : 'stop',
           },
         ];
       } else {
+        // Non-streaming case
         openaiResponse = await openai.chat.completions.create(payload);
       }
 
