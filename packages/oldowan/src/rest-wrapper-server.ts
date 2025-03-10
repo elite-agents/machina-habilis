@@ -150,13 +150,23 @@ export class RestApiWrappedOldowanServer implements IOldowanServer {
       body: requestBody,
     });
 
-    // TODO: add transformer code here
+    const transformer = tool.endpointDefinition.transformFn;
+    let transformedResponse = await response.json();
+
+    console.log('Raw response:', transformedResponse);
+
+    if (transformer) {
+      const transformerFn = new Function('response', transformer);
+      transformedResponse = transformerFn(transformedResponse);
+    }
+
+    console.log('Transformed response:', transformedResponse);
 
     return {
       content: [
         {
           type: 'text',
-          text: JSON.stringify(response.json(), null, 2),
+          text: JSON.stringify(transformedResponse, null, 2),
         },
       ],
     };

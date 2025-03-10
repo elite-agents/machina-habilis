@@ -37,9 +37,11 @@ class SqliteDb implements IRestApiWrappedOldowanToolRepository {
   }
 
   async find(): Promise<IRestApiWrappedOldowanTool[]> {
-    const stmt = this.db.prepare('SELECT data FROM tools');
-    const rows = stmt.all() as { data: string }[];
-    return rows.map((row) => JSON.parse(row.data));
+    const stmt = this.db.prepare('SELECT id, data FROM tools');
+    const rows = stmt.all() as { id: string; data: string }[];
+    return rows.map((row) =>
+      Object.assign(JSON.parse(row.data), { name: row.id }),
+    );
   }
 
   async findOne(id: string): Promise<IRestApiWrappedOldowanTool | null> {

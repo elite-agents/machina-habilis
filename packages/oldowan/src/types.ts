@@ -28,9 +28,8 @@ export const ZEndpointDefinition = z.object({
   url: z.string(),
   pathParams: z.record(z.string(), ZPrimitiveType).optional(),
   queryParams: z.record(z.string(), ZPrimitiveType).optional(),
-  body: z.record(z.string(), ZPrimitiveType).optional(),
-  responseFields: ZJsonSchema,
-  transform: z.string().optional(),
+  body: z.record(z.string(), ZJsonSchema).optional(),
+  transformFn: z.string().optional(),
   headers: z.record(z.string()).optional(),
   paramDescriptions: z.record(z.string(), z.string()).optional(),
 });

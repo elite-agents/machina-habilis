@@ -45,7 +45,7 @@ export class RestApiWrappedOldowanTool implements IRestApiWrappedOldowanTool {
     };
   }
 
-  convertParamsToSchema = (params: Record<string, string> = {}) =>
+  convertParamsToSchema = (params: Record<string, any> = {}) =>
     Object.entries(params).reduce(
       (acc, [key, type]) => ({
         ...acc,

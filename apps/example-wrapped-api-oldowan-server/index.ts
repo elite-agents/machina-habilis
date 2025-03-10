@@ -11,46 +11,32 @@ const PORT = 3004;
 
 const endpointDefinitions: IEndpointDefinition[] = [
   {
-    creator: 'example-api',
-    name: 'get-user',
-    description: 'Get user details by ID',
+    creator: 'irai-graffle',
+    name: 'get_coin_sentiment',
+    description: 'Get the sentiment of a coin',
     method: 'GET',
-    url: 'https://api.example.com/users/:userId',
-    pathParams: {
-      userId: 'string',
+    url: 'https://api.irai.co/get_coin_sentiment',
+    headers: {
+      'irai-api-key': process.env.IRAI_API_KEY ?? '',
     },
-    responseFields: {
-      id: 'string',
-      name: 'string',
-      email: 'string',
+    queryParams: {
+      coin: 'string',
     },
     paramDescriptions: {
-      userId: 'The unique identifier of the user',
+      coin: 'The coin to get the sentiment of',
     },
+    transformFn: 'return response.data.overview;',
   },
   {
-    creator: 'example-api',
-    name: 'create-post',
-    description: 'Create a new blog post',
-    method: 'POST',
-    url: 'https://api.example.com/posts',
-    body: {
-      title: 'string',
-      content: 'string',
-      authorId: 'string',
+    creator: 'irai-graffle',
+    name: 'top_news',
+    description: 'Get the top crypto news',
+    method: 'GET',
+    url: 'https://api.irai.co/top_news',
+    headers: {
+      'irai-api-key': process.env.IRAI_API_KEY ?? '',
     },
-    responseFields: {
-      id: 'string',
-      title: 'string',
-      content: 'string',
-      authorId: 'string',
-      createdAt: 'string',
-    },
-    paramDescriptions: {
-      title: 'The title of the blog post',
-      content: 'The content of the blog post',
-      authorId: 'The ID of the post author',
-    },
+    transformFn: 'return response.data',
   },
 ];
 
