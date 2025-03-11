@@ -42,6 +42,7 @@ export class RestApiWrappedOldowanTool implements IRestApiWrappedOldowanTool {
         ...this.convertParamsToSchema(endpointDefinition.queryParams),
         ...this.convertParamsToSchema(endpointDefinition.body),
       },
+      required: endpointDefinition.requiredParams ?? [],
     };
   }
 

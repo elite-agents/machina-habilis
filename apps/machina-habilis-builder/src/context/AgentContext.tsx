@@ -74,7 +74,10 @@ export function AgentProvider({ children }: AgentProviderProps) {
 
   useEffect(() => {
     async function init() {
-      await habilisServer.init(['http://localhost:3003/sse']);
+      await habilisServer.init([
+        'http://localhost:3003/sse',
+        'http://localhost:3004/sse',
+      ]);
       setHabilisServerTools(habilisServer.toolsMap);
     }
     init();

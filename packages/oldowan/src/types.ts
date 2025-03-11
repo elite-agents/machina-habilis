@@ -32,6 +32,7 @@ export const ZEndpointDefinition = z.object({
   transformFn: z.string().optional(),
   headers: z.record(z.string()).optional(),
   paramDescriptions: z.record(z.string(), z.string()).optional(),
+  requiredParams: z.array(z.string()).optional(),
 });
 
 export type IEndpointDefinition = z.infer<typeof ZEndpointDefinition>;

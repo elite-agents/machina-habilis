@@ -112,7 +112,7 @@ export class MachinaAgent implements IMachinaAgent {
 
         for (const toolArgs of toolArgParsed) {
           lifecycle.output =
-            openaiResponse.choices[0].message.content ??
+            openaiResponse.choices[0].message.content ||
             `Using ability - ${toolName}`;
 
           opts?.callback?.(lifecycle);
