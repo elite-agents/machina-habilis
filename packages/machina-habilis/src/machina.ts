@@ -108,32 +108,31 @@ export class MachinaAgent implements IMachinaAgent {
         const toolCall = openaiResponse.choices[0].message.tool_calls[0];
         const toolName = toolCall.function.name;
         const toolCallId = toolCall.id;
-        const toolArgParsed = this.parseArgs(toolCall.function.arguments);
+        const toolArgs = this.parseArgs(toolCall.function.arguments);
 
-        for (const toolArgs of toolArgParsed) {
-          lifecycle.output =
-            openaiResponse.choices[0].message.content ||
-            `Using ability - ${toolName}`;
+        lifecycle.output =
+          openaiResponse.choices[0].message.content ||
+          `Using ability - ${toolName}`;
 
-          opts?.callback?.(lifecycle);
+        opts?.callback?.(lifecycle);
 
-          const toolResult = await this.habilisServer.callTool(
-            toolName,
-            toolArgs,
-          );
+        const toolResult = await this.habilisServer.callTool(
+          toolName,
+          toolArgs,
+          opts?.streamTextHandler,
+        );
 
-          lifecycle.tools.push({
-            type: 'function',
-            toolCall: {
-              id: toolCallId,
-              function: {
-                name: toolName,
-                arguments: JSON.stringify(toolArgs),
-              },
+        lifecycle.tools.push({
+          type: 'function',
+          toolCall: {
+            id: toolCallId,
+            function: {
+              name: toolName,
+              arguments: JSON.stringify(toolArgs),
             },
-            result: JSON.stringify(toolResult),
-          });
-        }
+          },
+          result: JSON.stringify(toolResult),
+        });
       } else {
         continuePrompting = false;
         lifecycle.output = openaiResponse?.choices[0].message.content ?? '';
@@ -149,31 +148,32 @@ export class MachinaAgent implements IMachinaAgent {
 
     return lifecycle;
   }
-
   /**
    * args for tool calls could have a concatenated JSON value. example format "{}{}"
-   * this function parses and extracts the value and returns it as array
+   * this function parses and extracts the value and returns it as a merged object
    */
   parseArgs(args: string) {
     try {
       const jsonMatches = args.match(/\{.*?\}/g);
 
-      if (!jsonMatches) return [];
+      if (!jsonMatches) return [{}];
 
-      const parsedObjects = jsonMatches
-        .map((json) => {
-          try {
-            return JSON.parse(json);
-          } catch (error) {
-            return null;
+      const mergedObject = jsonMatches.reduce((result, json) => {
+        try {
+          const parsed = JSON.parse(json);
+          if (parsed && Object.keys(parsed).length > 0) {
+            return { ...result, ...parsed };
           }
-        })
-        .filter((obj) => obj && Object.keys(obj).length > 0);
+          return result;
+        } catch (error) {
+          return result;
+        }
+      }, {});
 
-      return parsedObjects;
+      return mergedObject;
     } catch (error) {
       console.error('Error parsing tool args:', error);
-      return [];
+      return [{}];
     }
   }
 }
