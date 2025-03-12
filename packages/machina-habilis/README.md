@@ -70,6 +70,10 @@ console.log(response.output);
 - Handles cross-server communication
 - Provides shared memory/cache services
 
+A Habilis Server can be thought of as the central repository for a web service that aggregates agent abilities and personas.
+You may create an API wrapper around it to provide a simple MCP tool and agent personality listing service.
+It also acts as a caching tool for MCP on the backend. You can imagine a cache ttl that is used to determine whether the entire list needs to be refreshed.
+
 **MachinaAgent** - The user-facing agent instance that:
 
 - Processes incoming messages through LLM pipelines
@@ -77,6 +81,8 @@ console.log(response.output);
 - Orchestrates tool usage via HabilisServer
 - Manages persona-specific behavior
 - Handles cryptographic identity and signatures
+
+A MachinaAgent can be used in the front-end or backend. Its main focus is to create encapsulation for an agent with abilities
 
 ### Relationship Flow
 
