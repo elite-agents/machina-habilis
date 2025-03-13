@@ -9,7 +9,7 @@
   "scripts": {
     "build": "bun build ./src/index.ts ./src/cli.ts --outdir ./dist --target bun && bun run build:types",
     "build:node": "bun build ./src/index.ts ./src/cli.ts --outdir ./dist --target node && bun run build:types",
-    "dev": "bun run build:all --watch",
+    "dev": "bun run build --watch",
     "build:types": "tsc --emitDeclarationOnly --declaration --outDir dist",
     "publish:package": "bun run build:node && npm publish --access=public",
     "publish:dry": "bun run build && npm pack --dry-run"
@@ -26,7 +26,9 @@
     "hono": "^4.7.0",
     "zod": "^3.24.1"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts"
 }
