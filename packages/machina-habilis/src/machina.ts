@@ -35,8 +35,8 @@ export class MachinaAgent implements IMachinaAgent {
   }
 
   learnAbility(ability: OldowanToolDefinition) {
-    this.abilityMap.set(ability.uniqueName, ability);
-    this.abilityNames.add(ability.uniqueName);
+    this.abilityMap.set(ability.id, ability);
+    this.abilityNames.add(ability.id);
   }
 
   async message(
@@ -68,7 +68,7 @@ export class MachinaAgent implements IMachinaAgent {
       .toArray()
       .map((tool) => ({
         ...tool,
-        name: tool.uniqueName,
+        name: tool.id,
       }));
 
     // If this agent has a recall memory tool, recall context from it

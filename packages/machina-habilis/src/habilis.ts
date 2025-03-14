@@ -20,39 +20,54 @@ export class HabilisServer implements IHabilisServer {
 
   constructor(memoryServerUrl: string) {
     this.memoryServerUrl = memoryServerUrl;
+
+    this.addMCPServer(this.memoryServerUrl).then((memoryServerTools) => {
+      this.recallContextTool = memoryServerTools.find((tool) =>
+        tool.includes(GET_CONTEXT_FROM_QUERY_TOOL_NAME),
+      );
+
+      this.addKnowledgeTool = memoryServerTools.find((tool) =>
+        tool.includes(INSERT_KNOWLEDGE_TOOL_NAME),
+      );
+
+      console.log('Memory Server Initialized');
+
+      return memoryServerTools;
+    });
+  }
+  /**
+   * Initialize the server with a pre-existing set of tools.
+   * This method is used when tools have already been loaded from cache,
+   * avoiding the need to connect to MCP servers again.
+   *
+   * @param tools - Array of pre-loaded tool definitions
+   */
+  async initWithCache(tools: OldowanToolDefinition[]) {
+    // Add tools to the existing toolsMap
+    tools.forEach((tool) => {
+      this.toolsMap.set(tool.id, tool);
+    });
+    // Add server URLs to the existing mcpServers array, avoiding duplicates
+    tools.forEach((tool) => {
+      if (!this.mcpServers.includes(tool.serverUrl)) {
+        this.mcpServers.push(tool.serverUrl);
+      }
+    });
   }
 
+  /**
+   * Initialize the server by connecting to multiple MCP servers.
+   * This method connects to each server and loads all available tools.
+   * Use this when starting fresh without cached tools.
+   *
+   * @param mcpServers - Array of MCP server URLs to connect to
+   */
   async init(mcpServers: string[]) {
-    console.log('Initializing Habilis Server with the following MCP servers:', [
-      this.memoryServerUrl,
-      ...mcpServers,
-    ]);
-
-    const mcpServerPromises = [
-      ...mcpServers.map((server) => this.addMCPServer(server)),
-      this.addMCPServer(this.memoryServerUrl).then((memoryServerTools) => {
-        console.log('memoryServerTools', memoryServerTools);
-
-        this.recallContextTool = memoryServerTools.find((tool) =>
-          tool.includes(GET_CONTEXT_FROM_QUERY_TOOL_NAME),
-        );
-
-        this.addKnowledgeTool = memoryServerTools.find((tool) =>
-          tool.includes(INSERT_KNOWLEDGE_TOOL_NAME),
-        );
-
-        return memoryServerTools;
-      }),
-    ];
+    const mcpServerPromises = mcpServers.map((server) =>
+      this.addMCPServer(server),
+    );
 
     await Promise.all(mcpServerPromises);
-
-    console.log('Habilis Server initialized with the following MCP servers:', [
-      this.memoryServerUrl,
-      ...mcpServers,
-    ]);
-
-    console.log('Tools Map:', this.toolsMap);
   }
 
   async addMCPServer(url: string) {
@@ -74,7 +89,7 @@ export class HabilisServer implements IHabilisServer {
         while (retries < maxRetries) {
           console.warn('error ', lastError);
           console.warn(
-            `Connection attempt ${retries} failed, error is ${lastError instanceof Error ? lastError.message : 'unknown'}, retrying...`,
+            `Connection attempt to ${url} failed, error is ${lastError instanceof Error ? lastError.message : 'unknown'}, retrying...`,
           );
           try {
             await client.connect(new SSEClientTransport(new URL(url)));
@@ -121,7 +136,7 @@ export class HabilisServer implements IHabilisServer {
 
         this.toolsMap.set(toolName, {
           ...tool,
-          uniqueName: toolName,
+          id: toolName,
           serverUrl: url,
         });
 
@@ -141,26 +156,26 @@ export class HabilisServer implements IHabilisServer {
   }
 
   async callTool(
-    toolUniqueName: string,
+    toolId: string,
     args: any,
     callback?: (message: string) => void,
   ): Promise<any> {
-    const tool = this.toolsMap.get(toolUniqueName);
+    const tool = this.toolsMap.get(toolId);
     if (!tool) {
-      console.error(`Tool ${toolUniqueName} not found`);
-      return `Tool ${toolUniqueName} not found`;
+      console.error(`Tool ${toolId} not found`);
+      return `Tool ${toolId} not found`;
     }
 
     const url = tool.serverUrl;
 
-    return this.callToolWithRetries(toolUniqueName, tool, url, args, {
+    return this.callToolWithRetries(toolId, tool, url, args, {
       retryCount: 0,
       callback,
     });
   }
 
   async callToolWithRetries(
-    toolUniqueName: string,
+    toolId: string,
     tool: OldowanToolDefinition,
     url: string,
     args: any,
@@ -179,18 +194,18 @@ export class HabilisServer implements IHabilisServer {
         version: '1.0.0',
       });
 
-      console.log('Connecting to MCP server:', url);
-
       await client.connect(new SSEClientTransport(new URL(url)));
 
-      console.log('Connected to MCP server:', url);
-
-      console.log('calling tool', toolUniqueName, tool.name, args);
-
-      const rawResult = await client.callTool({
-        name: tool.name,
-        arguments: args,
-      });
+      const rawResult = await client.callTool(
+        {
+          name: tool.name,
+          arguments: args,
+        },
+        undefined,
+        {
+          timeout: 5000,
+        },
+      );
 
       const result = rawResult.content as TextContent[];
 
@@ -207,7 +222,7 @@ export class HabilisServer implements IHabilisServer {
         }
       }
     } catch (error: unknown) {
-      console.error(`Error calling tool ${toolUniqueName}:`, error);
+      console.error(`Error calling tool ${toolId}:`, error);
 
       // Check if error is a timeout error (code -32001)
       if (error instanceof Error && 'code' in error && error.code === -32001) {
@@ -228,16 +243,16 @@ export class HabilisServer implements IHabilisServer {
           await new Promise((resolve) => setTimeout(resolve, delay));
 
           // Retry with incremented counter
-          return this.callToolWithRetries(toolUniqueName, tool, url, args, {
+          return this.callToolWithRetries(toolId, tool, url, args, {
             retryCount: retryCount + 1,
             callback: retryCallback,
           });
         }
 
-        return `Tool ${toolUniqueName} failed after ${MAX_RETRIES + 1} attempts due to timeout`;
+        return `Tool ${toolId} failed after ${MAX_RETRIES + 1} attempts due to timeout`;
       }
 
-      return `Failed to call tool ${toolUniqueName}: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      return `Failed to call tool ${toolId}: ${error instanceof Error ? error.message : 'Unknown error'}`;
     }
   }
 }

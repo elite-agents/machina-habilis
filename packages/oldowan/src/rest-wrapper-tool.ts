@@ -8,7 +8,7 @@ export class RestApiWrappedOldowanTool implements IRestApiWrappedOldowanTool {
   description: string;
   endpointDefinition: IEndpointDefinition;
   inputSchema: Tool['inputSchema'];
-  uniqueName: string;
+  id: string;
   serverUrl: string;
   tokenGate?: {
     mint: string;
@@ -28,7 +28,7 @@ export class RestApiWrappedOldowanTool implements IRestApiWrappedOldowanTool {
     this.name = endpointDefinition.name;
     this.description = endpointDefinition.description;
     this.endpointDefinition = endpointDefinition;
-    this.uniqueName = deriveToolUniqueName(
+    this.id = deriveToolUniqueName(
       endpointDefinition.creator,
       endpointDefinition.name,
     );

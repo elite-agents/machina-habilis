@@ -22,7 +22,7 @@ class SqliteDb implements IRestApiWrappedOldowanToolRepository {
     entity: IRestApiWrappedOldowanTool,
   ): Promise<IRestApiWrappedOldowanTool> {
     const stmt = this.db.prepare('INSERT INTO tools (id, data) VALUES (?, ?)');
-    stmt.run(entity.uniqueName, JSON.stringify(entity));
+    stmt.run(entity.id, JSON.stringify(entity));
     return entity;
   }
 
@@ -32,7 +32,7 @@ class SqliteDb implements IRestApiWrappedOldowanToolRepository {
     const stmt = this.db.prepare(
       'INSERT INTO tools (id, data) VALUES (?, ?) ON CONFLICT(id) DO UPDATE SET data = ?',
     );
-    stmt.run(entity.uniqueName, JSON.stringify(entity), JSON.stringify(entity));
+    stmt.run(entity.id, JSON.stringify(entity), JSON.stringify(entity));
     return entity;
   }
 

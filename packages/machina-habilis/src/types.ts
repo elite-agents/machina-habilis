@@ -61,7 +61,7 @@ export interface IHabilisServer {
   init(mcpServers: string[]): Promise<void>;
   addMCPServer(url: string): Promise<string[]>;
   callTool(
-    toolUniqueName: string,
+    toolId: string,
     args: any,
     statusCallback?: (message: string) => void,
   ): Promise<any>;

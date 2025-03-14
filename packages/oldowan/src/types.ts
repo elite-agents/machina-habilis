@@ -38,7 +38,7 @@ export const ZEndpointDefinition = z.object({
 export type IEndpointDefinition = z.infer<typeof ZEndpointDefinition>;
 
 export type OldowanToolDefinition = Tool & {
-  uniqueName: string;
+  id: string;
   serverUrl: string;
   tokenGate?: {
     mint: string;
