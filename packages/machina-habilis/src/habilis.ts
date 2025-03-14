@@ -70,20 +70,26 @@ export class HabilisServer implements IHabilisServer {
       } catch (error) {
         let retries = 0;
         const maxRetries = 3;
+        let lastError = error;
         while (retries < maxRetries) {
+          console.warn('error ', lastError);
+          console.warn(
+            `Connection attempt ${retries} failed, error is ${lastError instanceof Error ? lastError.message : 'unknown'}, retrying...`,
+          );
           try {
             await client.connect(new SSEClientTransport(new URL(url)));
             break;
           } catch (err) {
             retries++;
+            lastError = err;
             if (retries === maxRetries) {
               console.error(
                 `Failed to connect to MCP server ${url} after ${maxRetries} attempts:`,
-                error,
+                lastError,
               );
               return [];
             }
-            console.warn(`Connection attempt ${retries} failed, retrying...`);
+
             await new Promise((resolve) => setTimeout(resolve, 1000 * retries)); // Exponential backoff
           }
         }

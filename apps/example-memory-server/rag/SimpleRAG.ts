@@ -41,14 +41,14 @@ export class SimpleRAG {
       });
 
       const graph = this.falkor.selectGraph(
-        this.dbConfig.graph || 'simple_rag'
+        this.dbConfig.graph || 'simple_rag',
       );
       // Create constraints for unique IDs
       const indexes = (await graph.query(`CALL db.indexes()`)).data;
 
       if (
         !indexes?.filter(
-          (index) => ((index as any).label as string) === 'Entity'
+          (index) => ((index as any).label as string) === 'Entity',
         )
       ) {
         await graph.query(`CREATE INDEX ON :Entity(id)`);
@@ -58,12 +58,12 @@ export class SimpleRAG {
 
       if (
         !indexes?.filter(
-          (index) => ((index as any).label as string) === 'RELATES_TO'
+          (index) => ((index as any).label as string) === 'RELATES_TO',
         )
       ) {
         // Create indexes for timestamp and type fields for faster querying
         await graph.query(
-          `CREATE INDEX FOR ()-[r:RELATES_TO]->() ON (r.timestamp)`
+          `CREATE INDEX FOR ()-[r:RELATES_TO]->() ON (r.timestamp)`,
         );
         await graph.query(`CREATE INDEX FOR ()-[r:RELATES_TO]->() ON (r.type)`);
       }
@@ -82,7 +82,7 @@ export class SimpleRAG {
   async insert(
     text: string,
     agentPubkey: string,
-    channelId?: string
+    channelId?: string,
   ): Promise<void> {
     try {
       if (!this.falkor) {
@@ -94,7 +94,7 @@ export class SimpleRAG {
         await generateObject({
           prompt: `${EXTRACT_ENTITY_AND_RELATIONSHIP_PROMPT}\nInput Text: ${text}`,
           model: this.openai!.languageModel(
-            this.aiConfig.entityExtractionModel ?? 'gpt-4o'
+            this.aiConfig.entityExtractionModel ?? 'gpt-4o',
           ),
           schema: ZENTITY_EXTRACTED_TYPE,
         })
@@ -103,7 +103,7 @@ export class SimpleRAG {
       console.log('Entities and Relationships: ', entitiesAndRelationships);
 
       const graph = this.falkor.selectGraph(
-        this.dbConfig.graph || 'simple_rag'
+        this.dbConfig.graph || 'simple_rag',
       );
 
       // Process entities and find/merge with existing ones
@@ -128,7 +128,7 @@ export class SimpleRAG {
                     agentPubkey: agentPubkey,
                     ...(channelId ? { channelId } : {}),
                   },
-                }
+                },
               )
             ).data?.map((row: any) => row.e.properties as GraphNode) || [];
 
@@ -153,7 +153,7 @@ export class SimpleRAG {
               await generateText({
                 prompt: `Summarize the following text into fewer than 512 characters: ${combinedDescription}`,
                 model: this.openai!.languageModel(
-                  this.aiConfig.entityExtractionModel ?? 'gpt-4o'
+                  this.aiConfig.entityExtractionModel ?? 'gpt-4o',
                 ),
               })
             ).text;
@@ -168,7 +168,7 @@ export class SimpleRAG {
             agentPubkey,
             timestamp: Date.now(),
           };
-        })
+        }),
       );
 
       // Process relationships
@@ -176,11 +176,11 @@ export class SimpleRAG {
         (relationship) => {
           const sourceId = entitiesWithIds.find(
             (entity) =>
-              entity.name.toLowerCase() === relationship.source.toLowerCase()
+              entity.name.toLowerCase() === relationship.source.toLowerCase(),
           )!.id;
           const targetId = entitiesWithIds.find(
             (entity) =>
-              entity.name.toLowerCase() === relationship.target.toLowerCase()
+              entity.name.toLowerCase() === relationship.target.toLowerCase(),
           )!.id;
           return {
             id: nanoid(),
@@ -192,7 +192,7 @@ export class SimpleRAG {
             agentPubkey,
             timestamp: Date.now(),
           };
-        }
+        },
       );
 
       // Insert entities and relationships in parallel
@@ -221,9 +221,9 @@ export class SimpleRAG {
                   agentPubkey: entity.agentPubkey,
                   timestamp: entity.timestamp,
                 },
-              }
-            )
-          )
+              },
+            ),
+          ),
         ),
         // Insert relationships
         Promise.all(
@@ -251,9 +251,9 @@ export class SimpleRAG {
                   agentPubkey: relationship.agentPubkey,
                   timestamp: relationship.timestamp,
                 },
-              }
-            )
-          )
+              },
+            ),
+          ),
         ),
       ]);
     } catch (error) {
@@ -265,7 +265,7 @@ export class SimpleRAG {
   async query(
     text: string,
     agentPubkey: string,
-    channelId?: string
+    channelId?: string,
   ): Promise<string[]> {
     try {
       if (!this.falkor) {
@@ -277,7 +277,7 @@ export class SimpleRAG {
         await generateObject({
           prompt: `${EXTRACT_ENTITY_ONLY_PROMPT}\nInput Text: ${text}`,
           model: this.openai!.languageModel(
-            this.aiConfig.entityExtractionModel ?? 'gpt-4o'
+            this.aiConfig.entityExtractionModel ?? 'gpt-4o',
           ),
           schema: z.object({
             entities: z.array(ZExtractedEntity),
@@ -286,7 +286,7 @@ export class SimpleRAG {
       ).object.entities;
 
       const graph = this.falkor.selectGraph(
-        this.dbConfig.graph || 'simple_rag'
+        this.dbConfig.graph || 'simple_rag',
       );
 
       // Find similar entities and their relationships
@@ -306,15 +306,15 @@ export class SimpleRAG {
                   agentPubkey: agentPubkey,
                   channelId: channelId == undefined ? null : channelId,
                 },
-              }
+              },
             );
-          })
+          }),
         )
       )
         .map((graphReply) => {
           return (
             graphReply.data?.map(
-              (node: any) => node.e.properties as GraphNode
+              (node: any) => node.e.properties as GraphNode,
             ) || []
           );
         })
@@ -327,7 +327,7 @@ export class SimpleRAG {
         if (entitiesWithSimilarNames[i]) {
           return `Entity ${entitiesWithSimilarNames[i].name} (${entitiesWithSimilarNames[i].type}): ${entitiesWithSimilarNames[i].description}`;
         } else {
-          return entity.name;
+          return `Entity ${entity.name} (${entity.type}): ${entity.description}`;
         }
       });
       return entityContext;
