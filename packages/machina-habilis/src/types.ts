@@ -1,7 +1,7 @@
 import type { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import type { Keypair } from '@solana/web3.js';
 import type { SimplePersona } from './persona';
-import type { OldowanToolDefinition } from '@elite-agents/oldowan';
+import type { IRepository, OldowanToolDefinition } from '@elite-agents/oldowan';
 import * as z from 'zod';
 
 export type { OldowanToolDefinition };
@@ -52,12 +52,19 @@ export type IMessageLifecycle = z.infer<typeof ZMessageLifecycle>;
 
 export interface IHabilisServer {
   memoryServerUrl: string;
-  mcpClients: {
-    [url: string]: Client;
-  };
+  mcpServers: string[];
   toolsMap: Map<string, OldowanToolDefinition>;
   recallContextTool?: string;
   addKnowledgeTool?: string;
+  cacheDb?: IRepository<OldowanToolDefinition>;
+
+  init(mcpServers: string[]): Promise<void>;
+  addMCPServer(url: string): Promise<string[]>;
+  callTool(
+    toolUniqueName: string,
+    args: any,
+    statusCallback?: (message: string) => void,
+  ): Promise<any>;
 }
 
 export type IMachinaAgentOpts = {
@@ -77,7 +84,8 @@ export interface IMachinaAgent extends IMachinaAgentOpts {
     message: string,
     opts?: {
       channelId?: string;
-      context?: boolean;
+      callback?: (lifecycle: IMessageLifecycle) => void;
+      streamTextHandler?: (text: string) => void;
     },
   ): Promise<IMessageLifecycle>;
 

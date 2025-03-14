@@ -6,7 +6,7 @@
   "scripts": {
     "build": "bun build ./src/index.ts --outdir ./dist && bun run build:types",
     "build:all": "bun install && bun build ./src/index.ts --outdir ./dist && bun run build:types",
-    "dev": "bun run build:all --watch",
+    "dev": "bun run build --watch",
     "build:types": "tsc --emitDeclarationOnly",
     "publish:package": "bun run build && npm publish --access=public"
   },

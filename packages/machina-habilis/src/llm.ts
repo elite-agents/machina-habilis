@@ -115,7 +115,7 @@ async function generateText(
                   parameters: {
                     type: tool.inputSchema.type,
                     properties: tool.inputSchema.properties,
-                    required: tool.inputSchema.required,
+                    required: Object.keys(tool.inputSchema.properties ?? {}), // strict mode requires all properties to be present
                     additionalProperties: false,
                   },
                   strict: true,
