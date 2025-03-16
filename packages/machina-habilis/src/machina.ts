@@ -1,14 +1,14 @@
-import { type IMessageLifecycle } from './types.js';
+import { type IMessageLifecycle } from './types';
 import type { Keypair } from '@solana/web3.js';
-import { invokeLLM } from './llm.js';
+import { invokeLLM } from './llm';
 import { nanoid } from 'nanoid';
 import type {
   IMachinaAgent,
   IMachinaAgentOpts,
   ModelSettings,
   OldowanToolDefinition,
-} from './types.js';
-import type { SimplePersona } from './persona.js';
+} from './types';
+import type { SimplePersona } from './persona';
 import type { HabilisServer } from './habilis';
 export class MachinaAgent implements IMachinaAgent {
   habilisServer: HabilisServer;

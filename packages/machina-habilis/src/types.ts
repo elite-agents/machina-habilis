@@ -1,4 +1,3 @@
-import type { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import type { Keypair } from '@solana/web3.js';
 import type { SimplePersona } from './persona';
 import type { IRepository, OldowanToolDefinition } from '@elite-agents/oldowan';
