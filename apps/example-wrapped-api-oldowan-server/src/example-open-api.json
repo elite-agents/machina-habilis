@@ -1,0 +1,735 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "IRAI API",
+    "description": "Welcome to Investment Research AI's API service documentation.For more information, visit [our website](https://irai.co) or contact admin@irai.co for support.",
+    "version": "v0.0.52"
+  },
+  "servers": [
+    {
+      "url": "https://api.irai.co"
+    }
+  ],
+  "paths": {
+    "/ping": {
+      "get": {
+        "tags": ["system"],
+        "summary": "Ping",
+        "operationId": "ping_ping_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PingResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": ["system"],
+        "summary": "Health",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HealthResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/version": {
+      "get": {
+        "tags": ["info"],
+        "summary": "Version",
+        "operationId": "version_version_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/VersionResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ask": {
+      "post": {
+        "tags": ["chat"],
+        "summary": "Ask",
+        "operationId": "ask_ask_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AskRequest" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AskResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        },
+        "security": [{ "APIKeyHeader": [] }]
+      }
+    },
+    "/get_market_sentiment": {
+      "get": {
+        "tags": ["data"],
+        "summary": "Get Market Sentiment",
+        "description": "Retrieve General market sentiment, generated using IRAI's AI.\nAlso returns a moving average across all data sources.\nThe interval to calculate the moving average is selected by IRAI's AI based on the data available.",
+        "operationId": "get_market_sentiment_get_market_sentiment_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SentimentResponse" }
+              }
+            }
+          }
+        },
+        "security": [{ "APIKeyHeader": [] }]
+      }
+    },
+    "/get_coin_sentiment": {
+      "get": {
+        "tags": ["data"],
+        "summary": "Get Coin Sentiment",
+        "description": "Retrieve Specific coin sentiment, generated using IRAI's AI.\nThe interval to calculate the moving average is selected by IRAI's AI based on the data available.",
+        "operationId": "get_coin_sentiment_get_coin_sentiment_get",
+        "security": [{ "APIKeyHeader": [] }],
+        "parameters": [
+          {
+            "name": "coin",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "title": "Coin" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SentimentResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/top_news": {
+      "get": {
+        "tags": ["data"],
+        "summary": "Top News",
+        "description": "Get the top trending news topics IRAI's AI found across socials and websites.\n\nArgs:\n    top_k: Number of articles to get. Defaults to 5.",
+        "operationId": "top_news_top_news_get",
+        "security": [{ "APIKeyHeader": [] }],
+        "parameters": [
+          {
+            "name": "top_k",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 5, "title": "Top K" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TopNewsResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/top_searched_coins": {
+      "get": {
+        "tags": ["data"],
+        "summary": "Top Searched Coins",
+        "description": "Get the top coins searched by users across all data sources.\n\nArgs:\n    top_k: Number of top searched coins to get.",
+        "operationId": "top_searched_coins_top_searched_coins_get",
+        "security": [{ "APIKeyHeader": [] }],
+        "parameters": [
+          {
+            "name": "top_k",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 3, "title": "Top K" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopSearchedCoinsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/search_news": {
+      "get": {
+        "tags": ["data"],
+        "summary": "Search News",
+        "description": "Search for news in IRAI's hot news DB. This is live information processed by IRAI's AI, including Twitter, Telegram, Reddit, news sites, and more.\n\nArgs:\n    query: The search query.",
+        "operationId": "search_news_search_news_get",
+        "security": [{ "APIKeyHeader": [] }],
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "title": "Query" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SearchNewsResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/get_wordcloud": {
+      "get": {
+        "tags": ["data"],
+        "summary": "Get Wordcloud",
+        "description": "Returns an SVG wordcloud image of the most popular crypto-related terms currently mentioned across all social media.",
+        "operationId": "get_wordcloud_get_wordcloud_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/WordcloudResponse" }
+              }
+            }
+          }
+        },
+        "security": [{ "APIKeyHeader": [] }]
+      }
+    },
+    "/get_keyterm_frequencies": {
+      "get": {
+        "tags": ["data"],
+        "summary": "Get Keyterm Frequencies",
+        "description": "Returns the frequency of most popular crypto-related terms currently mentioned across all social media.",
+        "operationId": "get_keyterm_frequencies_get_keyterm_frequencies_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KeytermFrequenciesResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [{ "APIKeyHeader": [] }]
+      }
+    },
+    "/ask_stream_doc": {
+      "get": {
+        "tags": ["chat"],
+        "summary": "Ask Stream",
+        "description": "## WebSocket Endpoint\n\n- **`/stream_ask`**: This endpoint is used to interact with the IRAI chat service. It accepts a JSON object with the following keys\n    - `user_query`: The user's query.\n- During streaming, the endpoint will first send the following messages\n    - `citations`: A list of citations for the data used in the query.\n- Next, the endpoint will send the following messages\n    - `status`: The current status of the query.\n    - `output_chunk`: A chunk of the output.\n- Finally, the endpoint will return a final JSON object with the following keys\n    - `status`: The current status of the query. (Value will be \"complete\")\n    - `output`: The final output of the query.\n    - `citations`: A list of citations for the data used in the query.\n    - `datapoint_count`: The number of datapoints used in the query.\n\n*Websockets can be tricky, we understand. Reach out to us and we're happy to provide support.*\n\n> Note: The OpenAPI UI does not support the \"Try it out\" feature for WebSocket endpoints. Please use a WebSocket client to interact with this endpoint.",
+        "operationId": "ask_stream_ask_stream_doc_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AskResponse" }
+              }
+            }
+          }
+        },
+        "security": [{ "APIKeyHeader": [] }]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AskRequest": {
+        "properties": {
+          "question": {
+            "type": "string",
+            "title": "The question to ask the IRAI AI service."
+          },
+          "citations": {
+            "type": "boolean",
+            "title": "Whether to include citations in the response.",
+            "default": false
+          },
+          "lang": {
+            "type": "string",
+            "title": "The language of the response.",
+            "default": "English"
+          },
+          "features": {
+            "allOf": [{ "$ref": "#/components/schemas/_Features" }],
+            "description": "Feature flags to enable/disable certain features the AI has access to. Up to 8 can be enabled at once.",
+            "default": {
+              "news": true,
+              "trending": true,
+              "market_sentiment": true,
+              "coin_sentiment": true,
+              "price_actions": true,
+              "technical_analysis": true,
+              "market_update": true,
+              "stop_loss_take_profit": false,
+              "top_movers": true,
+              "ath_atl": false
+            }
+          },
+          "copy_style": {
+            "type": "string",
+            "title": "The style of the response.",
+            "default": "default"
+          }
+        },
+        "type": "object",
+        "required": ["question"],
+        "title": "AskRequest"
+      },
+      "AskResponse": {
+        "properties": {
+          "user_query": { "type": "string", "title": "User Query" },
+          "output": { "type": "string", "title": "Output" },
+          "error": { "type": "boolean", "title": "Error", "default": false },
+          "request_id": { "type": "string", "title": "Request Id" },
+          "citations": {
+            "items": { "$ref": "#/components/schemas/Citation" },
+            "type": "array",
+            "title": "Citations"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": ["user_query", "output", "request_id"],
+        "title": "AskResponse"
+      },
+      "Citation": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "The name of the citation. This appears as a title on the UI's popups."
+          },
+          "description": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Description",
+            "description": "The description of the citation. This appears as the body on the UI's popups. This is set AFTER the tool response is returned by the tool because we need to update the citation copyrighting style.",
+            "default": "Data was obtained from IRAI's proprietary data pipelines"
+          },
+          "description_data": {
+            "anyOf": [{ "type": "object" }, { "type": "null" }],
+            "title": "Description Data",
+            "description": "Data to be used for the citation description.",
+            "default": {}
+          },
+          "data": {
+            "anyOf": [
+              { "$ref": "#/components/schemas/TimeSeriesData" },
+              { "type": "null" }
+            ],
+            "description": "If this is provided, the citation will be displayed as a chart."
+          }
+        },
+        "type": "object",
+        "required": ["name"],
+        "title": "Citation"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": { "$ref": "#/components/schemas/ValidationError" },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "integer",
+            "title": "1 means IRAI AI service is healthy, 0 means something is wrong.",
+            "default": 1
+          }
+        },
+        "type": "object",
+        "title": "HealthResponse"
+      },
+      "KeytermFrequenciesResponse": {
+        "properties": {
+          "data": {
+            "additionalProperties": { "type": "number" },
+            "type": "object",
+            "title": "The keyterm frequencies. Frequencies are normalised between 0 and 1."
+          }
+        },
+        "type": "object",
+        "required": ["data"],
+        "title": "KeytermFrequenciesResponse"
+      },
+      "PingResponse": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "title": "The message from the IRAI AI service."
+          }
+        },
+        "type": "object",
+        "required": ["message"],
+        "title": "PingResponse"
+      },
+      "SearchNewsResponse": {
+        "properties": {
+          "data": {
+            "items": { "$ref": "#/components/schemas/_SearchNews" },
+            "type": "array",
+            "title": "The list of news articles that match the search query."
+          }
+        },
+        "type": "object",
+        "required": ["data"],
+        "title": "SearchNewsResponse"
+      },
+      "SentimentResponse": {
+        "properties": {
+          "data": {
+            "allOf": [{ "$ref": "#/components/schemas/_SentimentData" }],
+            "title": "The sentiment data."
+          }
+        },
+        "type": "object",
+        "required": ["data"],
+        "title": "SentimentResponse"
+      },
+      "Threshold": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label",
+            "description": "The label for the threshold."
+          },
+          "value": {
+            "type": "number",
+            "title": "Value",
+            "description": "The threshold value."
+          }
+        },
+        "type": "object",
+        "required": ["label", "value"],
+        "title": "Threshold"
+      },
+      "TimeSeriesData": {
+        "properties": {
+          "y_axis_label": {
+            "type": "string",
+            "title": "Y Axis Label",
+            "description": "The label for the y-axis."
+          },
+          "time": {
+            "items": { "type": "integer" },
+            "type": "array",
+            "title": "Time",
+            "description": "Timestamps in seconds."
+          },
+          "value": {
+            "items": { "type": "number" },
+            "type": "array",
+            "title": "Value",
+            "description": "Values corresponding to the timestamps."
+          },
+          "y_axis_units": {
+            "enum": ["currency", "threshold", "hidden", null],
+            "title": "Y Axis Units",
+            "description": "The units for the y-axis."
+          },
+          "thresholds": {
+            "anyOf": [
+              {
+                "items": { "$ref": "#/components/schemas/Threshold" },
+                "type": "array"
+              },
+              { "type": "null" }
+            ],
+            "title": "Thresholds",
+            "description": "Thresholds to display on the chart. Only used if y_axis_units='threshold'."
+          }
+        },
+        "type": "object",
+        "required": ["y_axis_label", "time", "value"],
+        "title": "TimeSeriesData"
+      },
+      "TopNewsResponse": {
+        "properties": {
+          "data": {
+            "items": { "type": "string" },
+            "type": "array",
+            "title": "The list of top news topics at the moment."
+          }
+        },
+        "type": "object",
+        "title": "TopNewsResponse"
+      },
+      "TopSearchedCoinsResponse": {
+        "properties": {
+          "data": {
+            "items": { "type": "string" },
+            "type": "array",
+            "title": "Names of the top searched coins."
+          }
+        },
+        "type": "object",
+        "title": "TopSearchedCoinsResponse"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": { "anyOf": [{ "type": "string" }, { "type": "integer" }] },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": { "type": "string", "title": "Message" },
+          "type": { "type": "string", "title": "Error Type" }
+        },
+        "type": "object",
+        "required": ["loc", "msg", "type"],
+        "title": "ValidationError"
+      },
+      "VersionResponse": {
+        "properties": {
+          "version": {
+            "type": "string",
+            "title": "The version of the IRAI AI service."
+          },
+          "changelog": {
+            "items": { "type": "string" },
+            "type": "array",
+            "title": "The changelog of the IRAI AI service."
+          }
+        },
+        "type": "object",
+        "required": ["version"],
+        "title": "VersionResponse"
+      },
+      "WordcloudResponse": {
+        "properties": {
+          "data": { "type": "string", "title": "The wordcloud SVG image." }
+        },
+        "type": "object",
+        "required": ["data"],
+        "title": "WordcloudResponse"
+      },
+      "_Features": {
+        "properties": {
+          "news": {
+            "type": "boolean",
+            "title": "Enable IRAI's proprietary AI powered news pipelines",
+            "default": true
+          },
+          "trending": {
+            "type": "boolean",
+            "title": "Enable topics identified as trending by IRAI's algorithms",
+            "default": true
+          },
+          "market_sentiment": {
+            "type": "boolean",
+            "title": "Enable market sentiment analysis generated from social media data using IRAI's AI",
+            "default": true
+          },
+          "coin_sentiment": {
+            "type": "boolean",
+            "title": "Enable coin sentiment analysis generated from social media data using IRAI's AI",
+            "default": true
+          },
+          "price_actions": {
+            "type": "boolean",
+            "title": "Enable identifying notable price actions using IRAI's quant algos",
+            "default": true
+          },
+          "technical_analysis": {
+            "type": "boolean",
+            "title": "Enable technical analysis on the price data",
+            "default": true
+          },
+          "market_update": {
+            "type": "boolean",
+            "title": "Enable using wider market quantitative indicators as part of the AI's analysis",
+            "default": true
+          },
+          "stop_loss_take_profit": {
+            "type": "boolean",
+            "title": "Enable IRAI's quant algos to identify stop loss and take profit levels",
+            "default": false
+          },
+          "top_movers": {
+            "type": "boolean",
+            "title": "Enable identifying recent top market movers as part of the AI's analysis",
+            "default": true
+          },
+          "ath_atl": {
+            "type": "boolean",
+            "title": "Enable using all time highs and lows as part of the AI's analysis",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "_Features"
+      },
+      "_SearchNews": {
+        "properties": {
+          "securities": {
+            "items": { "type": "string" },
+            "type": "array",
+            "title": "The securities that match the search query."
+          },
+          "latest_update": {
+            "type": "string",
+            "title": "Last time this topic/event was updated."
+          },
+          "source_name": {
+            "items": { "type": "string" },
+            "type": "array",
+            "title": "Most significant latest sources mentioning this topic."
+          },
+          "search_score": {
+            "type": "number",
+            "title": "The relevance score the topic to the search query.",
+            "default": 0.0
+          },
+          "content": {
+            "type": "string",
+            "title": "The content of the news article."
+          }
+        },
+        "type": "object",
+        "required": ["latest_update", "content"],
+        "title": "_SearchNews"
+      },
+      "_SentimentData": {
+        "properties": {
+          "overview": {
+            "type": "string",
+            "title": "An overview in english of the sentiment across data available."
+          },
+          "moving_average": {
+            "allOf": [
+              { "$ref": "#/components/schemas/_SentimentMovingAverage" }
+            ],
+            "title": "The moving average of the sentiment data. Useful if you want to plot the sentiment over time."
+          }
+        },
+        "type": "object",
+        "required": ["overview", "moving_average"],
+        "title": "_SentimentData"
+      },
+      "_SentimentMovingAverage": {
+        "properties": {
+          "time": {
+            "items": { "type": "integer" },
+            "type": "array",
+            "title": "Timestamps of the moving average."
+          },
+          "sentiment": {
+            "items": { "type": "number" },
+            "type": "array",
+            "title": "Non-normalised sentiment values of the moving average."
+          }
+        },
+        "type": "object",
+        "required": ["time", "sentiment"],
+        "title": "_SentimentMovingAverage"
+      }
+    },
+    "securitySchemes": {
+      "APIKeyHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "irai-api-key"
+      }
+    }
+  },
+  "tags": [
+    { "name": "chat", "description": "Interact with the IRAI chat service." },
+    {
+      "name": "data",
+      "description": "Endpoints to use data from IRAI's data services."
+    },
+    { "name": "info", "description": "Get information about the IRAI API." },
+    { "name": "system", "description": "System endpoints. Useful for devs." }
+  ]
+}

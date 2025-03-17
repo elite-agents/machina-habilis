@@ -84,89 +84,117 @@ export class RestApiWrappedOldowanServer implements IOldowanServer {
     return { tools };
   }
 
-  async callTool(
-    tool: IRestApiWrappedOldowanTool,
-    args: Record<string, unknown>,
-  ) {
+  async callTool(tool: IRestApiWrappedOldowanTool, args?: Record<string, any>) {
+    // We probably need a better schema for this!
+    // This feels like parsing a string back to an object
     const parsedArgs = z
-      .object(
-        Object.entries(
-          tool.inputSchema.properties as ToolSchemaProperties,
-        ).reduce(
-          (acc, [key, value]) => ({
-            ...acc,
-            [key]: z[value.type](),
-          }),
-          {},
-        ),
+      .record(
+        z.union([
+          z.string(),
+          z.number(),
+          z.boolean(),
+          z.record(z.any()),
+          z.array(z.any()),
+        ]),
       )
       .parse(args) as Record<string, any>;
 
-    const { method, url, pathParams, queryParams, body, headers } =
+    const { method, url, parameters, requestBody, headers } =
       tool.endpointDefinition;
 
-    // Process path parameters
+    // Process the URL path with path parameters
     let processedUrl = url;
-    if (pathParams) {
-      for (const param of Object.keys(pathParams)) {
-        processedUrl = processedUrl.replace(`:${param}`, parsedArgs[param]);
-      }
-    }
+    const pathParams: Record<string, any> = {};
+    const queryParams: Record<string, any> = {};
 
-    // Process query parameters
-    const query = new URLSearchParams();
-    if (queryParams) {
-      for (const param of Object.keys(queryParams)) {
-        if (parsedArgs[param] !== undefined) {
-          query.append(param, parsedArgs[param]);
+    // Extract path and query parameters from the OpenAPI parameters
+    if (parameters) {
+      for (const param of parameters) {
+        if (param.in === 'path' && parsedArgs[param.name] !== undefined) {
+          pathParams[param.name] = parsedArgs[param.name];
+          // Replace path parameters in the URL
+          processedUrl = processedUrl.replace(
+            `{${param.name}}`,
+            parsedArgs[param.name],
+          );
+        } else if (
+          param.in === 'query' &&
+          parsedArgs[param.name] !== undefined
+        ) {
+          queryParams[param.name] = parsedArgs[param.name];
         }
       }
     }
-    const queryString = query.toString();
-    if (queryString) {
-      processedUrl += `?${queryString}`;
+
+    // Add query parameters to the URL
+    if (Object.keys(queryParams).length > 0) {
+      const queryString = new URLSearchParams();
+      for (const [key, value] of Object.entries(queryParams)) {
+        queryString.append(key, value.toString());
+      }
+      processedUrl = `${processedUrl}?${queryString.toString()}`;
     }
 
-    // Process request body
-    let requestBody = undefined;
-    if (body && method !== 'GET') {
-      requestBody = JSON.stringify(
-        Object.entries(body).reduce(
-          (acc, [key]) => {
-            acc[key] = parsedArgs[key];
-            return acc;
-          },
-          {} as Record<string, any>,
-        ),
-      );
+    // Process request body if it exists and method is not GET
+    let body = undefined;
+    if (method !== 'GET' && requestBody && requestBody.content) {
+      // Get the first content type from the requestBody
+      const contentType = Object.keys(requestBody.content)[0];
+
+      // Extract request body properties from parsed args
+      const bodyParams: Record<string, any> = {};
+
+      // Create a list of path and query param names for exclusion
+      const paramNames = new Set<string>();
+      if (parameters) {
+        for (const param of parameters) {
+          if (param.in === 'path' || param.in === 'query') {
+            paramNames.add(param.name);
+          }
+        }
+      }
+
+      // Include in body any args that aren't path or query params
+      for (const [key, value] of Object.entries(parsedArgs)) {
+        if (!paramNames.has(key)) {
+          bodyParams[key] = value;
+        }
+      }
+
+      // Only set body if we have parameters
+      if (Object.keys(bodyParams).length > 0) {
+        body = JSON.stringify(bodyParams);
+      }
     }
 
-    const response = await fetch(processedUrl, {
+    // Combine default headers with endpoint headers
+    const requestHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(headers || {}),
+    };
+
+    const resp = await fetch(processedUrl, {
       method,
-      headers: {
-        'Content-Type': 'application/json',
-        ...headers,
-      },
-      body: requestBody,
+      headers: requestHeaders,
+      body,
     });
 
     const transformer = tool.endpointDefinition.transformFn;
-    let transformedResponse = await response.json();
-
-    console.log('Raw response:', transformedResponse);
+    let transformed = await resp.json();
 
     if (transformer) {
-      const transformerFn = new Function('response', transformer);
-      transformedResponse = transformerFn(transformedResponse);
+      const transformerFn = new Function(
+        'response',
+        `return (${transformer})(response);`,
+      );
+      transformed = transformerFn(transformed);
     }
-
-    console.log('Transformed response:', transformedResponse);
 
     return {
       content: [
         {
           type: 'text',
-          text: JSON.stringify(transformedResponse, null, 2),
+          text: JSON.stringify(transformed, null, 2),
         },
       ],
     };
