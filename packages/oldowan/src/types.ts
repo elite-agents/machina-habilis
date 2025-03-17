@@ -7,7 +7,10 @@ const ZPrimitiveType = z.enum(['string', 'number', 'boolean']);
 const ZHttpMethod = z.enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']);
 
 type JSONPrimitive = z.infer<typeof ZPrimitiveType>;
-type JSONValue = JSONPrimitive | JSONValue[] | { [key: string]: JSONValue };
+export type JSONValue =
+  | JSONPrimitive
+  | JSONValue[]
+  | { [key: string]: JSONValue };
 
 const ZJsonSchema: z.ZodType<JSONValue> = z.lazy(() =>
   z.union([ZPrimitiveType, z.array(ZJsonSchema), z.record(ZJsonSchema)]),
@@ -20,22 +23,42 @@ export type ToolSchemaProperties = {
   };
 };
 
+// OpenAPI specific types
+export const ZOpenAPIParameter = z.object({
+  name: z.string(),
+  in: z.enum(['path', 'query', 'header', 'cookie']),
+  description: z.string().optional(),
+  required: z.boolean().optional(),
+  schema: z.record(z.any()).optional(),
+});
+
+export const ZOpenAPIRequestBody = z.object({
+  description: z.string().optional(),
+  content: z.record(
+    z.object({
+      schema: z.record(z.any()).optional(),
+    }),
+  ),
+  required: z.boolean().optional(),
+});
+
 export const ZEndpointDefinition = z.object({
   creator: z.string(),
   name: z.string(),
   description: z.string(),
   method: ZHttpMethod,
   url: z.string(),
-  pathParams: z.record(z.string(), ZPrimitiveType).optional(),
-  queryParams: z.record(z.string(), ZPrimitiveType).optional(),
-  body: z.record(z.string(), ZJsonSchema).optional(),
   transformFn: z.string().optional(),
   headers: z.record(z.string()).optional(),
-  paramDescriptions: z.record(z.string(), z.string()).optional(),
-  requiredParams: z.array(z.string()).optional(),
+  // OpenAPI specific fields
+  openApiSpec: z.record(z.any()).optional(), // Store the complete OpenAPI spec
+  parameters: z.array(ZOpenAPIParameter).optional(),
+  requestBody: ZOpenAPIRequestBody.optional(),
 });
 
 export type IEndpointDefinition = z.infer<typeof ZEndpointDefinition>;
+export type OpenAPIParameter = z.infer<typeof ZOpenAPIParameter>;
+export type OpenAPIRequestBody = z.infer<typeof ZOpenAPIRequestBody>;
 
 export type OldowanToolDefinition = Tool & {
   id: string;
@@ -55,7 +78,7 @@ export interface IOldowanServer {
   honoServer: HonoServerWithPort;
 }
 
-export interface IRestApiWrappedOldowanTool extends OldowanToolDefinition {
+export interface IRestApiWrappedOldowanTool extends Tool {
   endpointDefinition: IEndpointDefinition;
   convertParamsToSchema: (params: Record<string, string>) => {
     [key: string]: {

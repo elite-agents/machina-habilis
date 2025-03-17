@@ -1,4 +1,5 @@
 import {
+  createToolsFromOpenAPI,
   RestApiWrappedOldowanServer,
   RestApiWrappedOldowanTool,
   ZEndpointDefinition,
@@ -9,43 +10,9 @@ import { z } from 'zod';
 
 const PORT = 3004;
 
-const endpointDefinitions: IEndpointDefinition[] = [
-  {
-    creator: 'irai-graffle',
-    name: 'get_coin_sentiment',
-    description: 'Get the sentiment of a coin',
-    method: 'GET',
-    url: 'https://api.irai.co/get_coin_sentiment',
-    headers: {
-      'irai-api-key': process.env.IRAI_API_KEY ?? '',
-    },
-    queryParams: {
-      coin: 'string',
-    },
-    paramDescriptions: {
-      coin: 'The coin to get the sentiment of',
-    },
-    transformFn: 'return response.data.overview;',
-  },
-  {
-    creator: 'irai-graffle',
-    name: 'top_news',
-    description: 'Get the top crypto news',
-    method: 'GET',
-    url: 'https://api.irai.co/top_news',
-    headers: {
-      'irai-api-key': process.env.IRAI_API_KEY ?? '',
-    },
-    transformFn: 'return response.data',
-  },
-];
+const openapiSpec = await Bun.file('./src/example-open-api.json').json();
 
-const tools = endpointDefinitions.map((endpointDefinition) => {
-  return new RestApiWrappedOldowanTool(
-    endpointDefinition,
-    'http://localhost:6005',
-  );
-});
+const tools = await createToolsFromOpenAPI('irai-graffle', openapiSpec);
 
 for (const tool of tools) {
   await sqliteDb.upsert(tool);
@@ -75,10 +42,7 @@ server.honoServer.post('/create-tool', async (c) => {
     return c.json({ error }, 400);
   }
 
-  const tool = new RestApiWrappedOldowanTool(
-    parsedEndpointDefinition,
-    `http://localhost:${PORT}`,
-  );
+  const tool = new RestApiWrappedOldowanTool(parsedEndpointDefinition);
 
   const result = await sqliteDb.upsert(tool);
 
