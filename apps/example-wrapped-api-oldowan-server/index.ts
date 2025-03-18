@@ -12,7 +12,11 @@ const PORT = 3004;
 
 const openapiSpec = await Bun.file('./src/example-open-api.json').json();
 
-const tools = await createToolsFromOpenAPI('irai-graffle', openapiSpec);
+const tools = await createToolsFromOpenAPI('irai-graffle', openapiSpec, {
+  headers: {
+    'irai-api-key': process.env.IRAI_API_KEY ?? '',
+  },
+});
 
 for (const tool of tools) {
   await sqliteDb.upsert(tool);

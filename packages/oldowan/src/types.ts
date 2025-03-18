@@ -50,8 +50,6 @@ export const ZEndpointDefinition = z.object({
   url: z.string(),
   transformFn: z.string().optional(),
   headers: z.record(z.string()).optional(),
-  // OpenAPI specific fields
-  openApiSpec: z.record(z.any()).optional(), // Store the complete OpenAPI spec
   parameters: z.array(ZOpenAPIParameter).optional(),
   requestBody: ZOpenAPIRequestBody.optional(),
 });

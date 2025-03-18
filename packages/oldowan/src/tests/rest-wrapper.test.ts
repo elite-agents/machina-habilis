@@ -143,7 +143,6 @@ describe('Oldowan Rest Wrapper', () => {
       method: 'GET',
       url: 'https://petstore.swagger.io/v2/pet/{petId}',
       parameters,
-      openApiSpec: petStoreOpenApiSpec,
     };
 
     // Initialize the tool with the endpoint

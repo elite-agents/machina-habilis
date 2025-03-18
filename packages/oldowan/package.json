@@ -1,7 +1,7 @@
 {
   "name": "@elite-agents/oldowan",
   "module": "src/index.ts",
-  "version": "0.1.1",
+  "version": "0.1.4",
   "type": "module",
   "bin": {
     "oldowan": "./dist/cli.js"
@@ -22,9 +22,9 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.4.1",
+    "@readme/openapi-parser": "^3.0.1",
     "commander": "^11.1.0",
     "hono": "^4.7.0",
-    "oas-normalize": "^13.1.2",
     "zod": "^3.24.1"
   },
   "files": [

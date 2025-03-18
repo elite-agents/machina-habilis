@@ -141,7 +141,9 @@ describe('OpenAPI Utilities', () => {
       // Verify GET /test/{id} tool
       const getTestTool = tools.find((tool) => tool.name === 'getTest');
       expect(getTestTool).toBeDefined();
-      expect(getTestTool?.description).toBe('Get test by ID');
+      expect(getTestTool?.description).toBe(
+        'Get test by ID\n\nGet a test item by ID',
+      );
       expect(getTestTool?.endpointDefinition.method).toBe('GET');
       expect(getTestTool?.endpointDefinition.url).toBe(
         'http://localhost:3000/test/{id}',
@@ -164,7 +166,9 @@ describe('OpenAPI Utilities', () => {
       // Verify POST /test/{id} tool
       const createTestTool = tools.find((tool) => tool.name === 'createTest');
       expect(createTestTool).toBeDefined();
-      expect(createTestTool?.description).toBe('Create a test');
+      expect(createTestTool?.description).toBe(
+        'Create a test\n\nCreate a new test item',
+      );
       expect(createTestTool?.endpointDefinition.method).toBe('POST');
       expect(createTestTool?.endpointDefinition.url).toBe(
         'http://localhost:3000/test/{id}',

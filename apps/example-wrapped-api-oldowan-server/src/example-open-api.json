@@ -15,7 +15,6 @@
       "get": {
         "tags": ["system"],
         "summary": "Ping",
-        "operationId": "ping_ping_get",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -32,7 +31,6 @@
       "get": {
         "tags": ["system"],
         "summary": "Health",
-        "operationId": "health_health_get",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -49,7 +47,6 @@
       "get": {
         "tags": ["info"],
         "summary": "Version",
-        "operationId": "version_version_get",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -66,7 +63,6 @@
       "post": {
         "tags": ["chat"],
         "summary": "Ask",
-        "operationId": "ask_ask_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -101,7 +97,6 @@
         "tags": ["data"],
         "summary": "Get Market Sentiment",
         "description": "Retrieve General market sentiment, generated using IRAI's AI.\nAlso returns a moving average across all data sources.\nThe interval to calculate the moving average is selected by IRAI's AI based on the data available.",
-        "operationId": "get_market_sentiment_get_market_sentiment_get",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -120,7 +115,6 @@
         "tags": ["data"],
         "summary": "Get Coin Sentiment",
         "description": "Retrieve Specific coin sentiment, generated using IRAI's AI.\nThe interval to calculate the moving average is selected by IRAI's AI based on the data available.",
-        "operationId": "get_coin_sentiment_get_coin_sentiment_get",
         "security": [{ "APIKeyHeader": [] }],
         "parameters": [
           {
@@ -155,7 +149,6 @@
         "tags": ["data"],
         "summary": "Top News",
         "description": "Get the top trending news topics IRAI's AI found across socials and websites.\n\nArgs:\n    top_k: Number of articles to get. Defaults to 5.",
-        "operationId": "top_news_top_news_get",
         "security": [{ "APIKeyHeader": [] }],
         "parameters": [
           {
@@ -190,7 +183,6 @@
         "tags": ["data"],
         "summary": "Top Searched Coins",
         "description": "Get the top coins searched by users across all data sources.\n\nArgs:\n    top_k: Number of top searched coins to get.",
-        "operationId": "top_searched_coins_top_searched_coins_get",
         "security": [{ "APIKeyHeader": [] }],
         "parameters": [
           {
@@ -227,7 +219,6 @@
         "tags": ["data"],
         "summary": "Search News",
         "description": "Search for news in IRAI's hot news DB. This is live information processed by IRAI's AI, including Twitter, Telegram, Reddit, news sites, and more.\n\nArgs:\n    query: The search query.",
-        "operationId": "search_news_search_news_get",
         "security": [{ "APIKeyHeader": [] }],
         "parameters": [
           {
@@ -262,7 +253,6 @@
         "tags": ["data"],
         "summary": "Get Wordcloud",
         "description": "Returns an SVG wordcloud image of the most popular crypto-related terms currently mentioned across all social media.",
-        "operationId": "get_wordcloud_get_wordcloud_get",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -281,7 +271,6 @@
         "tags": ["data"],
         "summary": "Get Keyterm Frequencies",
         "description": "Returns the frequency of most popular crypto-related terms currently mentioned across all social media.",
-        "operationId": "get_keyterm_frequencies_get_keyterm_frequencies_get",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -302,7 +291,6 @@
         "tags": ["chat"],
         "summary": "Ask Stream",
         "description": "## WebSocket Endpoint\n\n- **`/stream_ask`**: This endpoint is used to interact with the IRAI chat service. It accepts a JSON object with the following keys\n    - `user_query`: The user's query.\n- During streaming, the endpoint will first send the following messages\n    - `citations`: A list of citations for the data used in the query.\n- Next, the endpoint will send the following messages\n    - `status`: The current status of the query.\n    - `output_chunk`: A chunk of the output.\n- Finally, the endpoint will return a final JSON object with the following keys\n    - `status`: The current status of the query. (Value will be \"complete\")\n    - `output`: The final output of the query.\n    - `citations`: A list of citations for the data used in the query.\n    - `datapoint_count`: The number of datapoints used in the query.\n\n*Websockets can be tricky, we understand. Reach out to us and we're happy to provide support.*\n\n> Note: The OpenAPI UI does not support the \"Try it out\" feature for WebSocket endpoints. Please use a WebSocket client to interact with this endpoint.",
-        "operationId": "ask_stream_ask_stream_doc_get",
         "responses": {
           "200": {
             "description": "Successful Response",

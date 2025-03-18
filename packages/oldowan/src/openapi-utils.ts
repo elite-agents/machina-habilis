@@ -1,6 +1,6 @@
 import type { OpenAPIParameter, IEndpointDefinition } from './types';
 import { RestApiWrappedOldowanTool } from './rest-wrapper-tool';
-import OASNormalize from 'oas-normalize';
+import { compileErrors, validate } from '@readme/openapi-parser';
 
 interface OpenAPIPathItem {
   parameters?: any[];
@@ -83,15 +83,23 @@ export async function createEndpointDefinitionsFromOpenAPI(
 ): Promise<IEndpointDefinition[]> {
   // Validate the OpenAPI specification using @readme/openapi-parser
   try {
-    // Convert to string for validation as required by the library
-    const normalizedSpec = new OASNormalize(openapiSpec);
-
-    // Validate the normalized spec
-    await normalizedSpec.validate();
-
     // Check if servers is present
     if (!openapiSpec.servers) {
       throw new Error('No servers found in OpenAPI spec');
+    }
+
+    /**
+     * `OpenAPIParser.validate()` dereferences schemas at the same time as validation, mutating
+     * the supplied parameter in the process, and does not give us an option to disable this.
+     * As we already have a dereferencing method on this library, and this method just needs to
+     * tell us if the API definition is valid or not, we need to clone the schema before
+     * supplying it to `openapi-parser`.
+     */
+    const clonedSchema = JSON.parse(JSON.stringify(openapiSpec));
+
+    const result = await validate(clonedSchema);
+    if (!result.valid) {
+      throw new Error(compileErrors(result));
     }
   } catch (error) {
     throw new Error(
@@ -168,14 +176,15 @@ export async function createEndpointDefinitionsFromOpenAPI(
         creator,
         name,
         description:
-          operationObj.summary ||
-          operationObj.description ||
-          `${methodUpper} ${path}`,
+          operationObj.summary && operationObj.description
+            ? `${operationObj.summary}\n\n${operationObj.description}`
+            : operationObj.summary ||
+              operationObj.description ||
+              `${methodUpper} ${path}`,
         method: methodUpper,
         url: baseUrl ? `${baseUrl}${path}` : path,
         transformFn: options?.transformFn,
         headers: options?.headers,
-        openApiSpec: openapiSpec,
         parameters: parameters.length > 0 ? parameters : undefined,
         requestBody: operationObj.requestBody,
       };
