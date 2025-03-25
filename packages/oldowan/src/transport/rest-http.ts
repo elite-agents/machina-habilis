@@ -64,7 +64,7 @@ export const createRestServerHono = (opts: { server: MCPServerLike }) => {
     }),
   );
 
-  app.post('/rpc', async (c) => {
+  app.post('/mcp', async (c) => {
     try {
       const transport = new RESTServerTransportHono();
 

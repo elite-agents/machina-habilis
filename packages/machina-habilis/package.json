@@ -24,6 +24,7 @@
     "@anthropic-ai/sdk": "^0.36.3",
     "@elite-agents/oldowan": "*",
     "@solana/web3.js": "^1.98.0",
+    "hono": "^4.7.5",
     "nanoid": "^5.0.9",
     "openai": "^4.83.0"
   },

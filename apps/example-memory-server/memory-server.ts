@@ -1,4 +1,4 @@
-import { MnemonServer } from '@elite-agents/mnemon';
+import { MnemonServer } from '@elite-agents/machina-habilis';
 import { DualRagMemoryServer } from './rag/DualRagMemoryServer';
 
 const isDocker = () => process.env.IS_DOCKER === 'true';
@@ -27,9 +27,8 @@ const rag = new DualRagMemoryServer(
 await rag.init();
 
 const mnemon = new MnemonServer({
-  port: 3002,
-  getContextFromQuery: rag.getContextFromQuery.bind(rag),
-  insertKnowledge: rag.insertKnowledge.bind(rag),
+  recallMemory: rag.getContextFromQuery.bind(rag),
+  createMemory: rag.insertKnowledge.bind(rag),
 });
 
-export default mnemon.honoServer;
+export default mnemon.app;

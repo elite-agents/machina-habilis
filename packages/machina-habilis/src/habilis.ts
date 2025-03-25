@@ -1,40 +1,33 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { SSEClientTransport } from './SSEClientTransport';
 import type { TextContent } from '@modelcontextprotocol/sdk/types.js';
-import type { IHabilisServer, OldowanToolDefinition } from './types';
 import {
-  GET_CONTEXT_FROM_QUERY_TOOL_NAME,
-  INSERT_KNOWLEDGE_TOOL_NAME,
-} from './constants';
-import { deriveToolUniqueName } from '@elite-agents/oldowan';
+  deriveToolUniqueName,
+  type OldowanToolDefinition,
+} from '@elite-agents/oldowan';
+import { HTTPClientTransport } from './HTTPClientTransport';
 
-export class HabilisServer implements IHabilisServer {
-  memoryServerUrl: string;
-
+/**
+ * A server that coordinates calls to tools from MCP servers.
+ *
+ * This class is used to initialize the server with a pre-existing set of tools
+ * or connect to multiple MCP servers to load all available tools.
+ *
+ * It can be optionally used by the MachinaAgent class to call tools.
+ * This is useful in low latency environments where tools are called frequently.
+ * The HabilisServer becomes the single point of contact for all tool calls.
+ *
+ * @example
+ * ```typescript
+ * const habilisServer = new HabilisServer();
+ * await habilisServer.init(['https://mcp.example.com']);
+ * ```
+ *
+ */
+export class HabilisServer {
   mcpServers: string[] = [];
 
   toolsMap = new Map<string, OldowanToolDefinition>();
 
-  recallContextTool?: string;
-  addKnowledgeTool?: string;
-
-  constructor(memoryServerUrl: string) {
-    this.memoryServerUrl = memoryServerUrl;
-
-    this.addMCPServer(this.memoryServerUrl).then((memoryServerTools) => {
-      this.recallContextTool = memoryServerTools.find((tool) =>
-        tool.includes(GET_CONTEXT_FROM_QUERY_TOOL_NAME),
-      );
-
-      this.addKnowledgeTool = memoryServerTools.find((tool) =>
-        tool.includes(INSERT_KNOWLEDGE_TOOL_NAME),
-      );
-
-      console.log('Memory Server Initialized');
-
-      return memoryServerTools;
-    });
-  }
   /**
    * Initialize the server with a pre-existing set of tools.
    * This method is used when tools have already been loaded from cache,
@@ -80,7 +73,7 @@ export class HabilisServer implements IHabilisServer {
       console.log('Connecting to MCP server:', url);
 
       try {
-        await client.connect(new SSEClientTransport(new URL(url)));
+        await client.connect(new HTTPClientTransport(new URL(url)));
         console.log('Connected to MCP server:', url);
       } catch (error) {
         let retries = 0;
@@ -92,7 +85,7 @@ export class HabilisServer implements IHabilisServer {
             `Connection attempt to ${url} failed, error is ${lastError instanceof Error ? lastError.message : 'unknown'}, retrying...`,
           );
           try {
-            await client.connect(new SSEClientTransport(new URL(url)));
+            await client.connect(new HTTPClientTransport(new URL(url)));
             break;
           } catch (err) {
             retries++;
@@ -168,14 +161,13 @@ export class HabilisServer implements IHabilisServer {
 
     const url = tool.serverUrl;
 
-    return this.callToolWithRetries(toolId, tool, url, args, {
+    return HabilisServer.callToolWithRetries(tool, url, args, {
       retryCount: 0,
       callback,
     });
   }
 
-  async callToolWithRetries(
-    toolId: string,
+  static async callToolWithRetries(
     tool: OldowanToolDefinition,
     url: string,
     args: any,
@@ -194,7 +186,7 @@ export class HabilisServer implements IHabilisServer {
         version: '1.0.0',
       });
 
-      await client.connect(new SSEClientTransport(new URL(url)));
+      await client.connect(new HTTPClientTransport(new URL(url)));
 
       const rawResult = await client.callTool(
         {
@@ -222,7 +214,7 @@ export class HabilisServer implements IHabilisServer {
         }
       }
     } catch (error: unknown) {
-      console.error(`Error calling tool ${toolId}:`, error);
+      console.error(`Error calling tool ${tool.id}:`, error);
 
       // Check if error is a timeout error (code -32001)
       if (error instanceof Error && 'code' in error && error.code === -32001) {
@@ -243,16 +235,16 @@ export class HabilisServer implements IHabilisServer {
           await new Promise((resolve) => setTimeout(resolve, delay));
 
           // Retry with incremented counter
-          return this.callToolWithRetries(toolId, tool, url, args, {
+          return this.callToolWithRetries(tool, url, args, {
             retryCount: retryCount + 1,
             callback: retryCallback,
           });
         }
 
-        return `Tool ${toolId} failed after ${MAX_RETRIES + 1} attempts due to timeout`;
+        return `Tool ${tool.id} failed after ${MAX_RETRIES + 1} attempts due to timeout`;
       }
 
-      return `Failed to call tool ${toolId}: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      return `Failed to call tool ${tool.id}: ${error instanceof Error ? error.message : 'Unknown error'}`;
     }
   }
 }

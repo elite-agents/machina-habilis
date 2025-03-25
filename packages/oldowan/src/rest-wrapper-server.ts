@@ -5,11 +5,9 @@ import type {
   IOldowanServer,
   IRestApiWrappedOldowanTool,
   IRestApiWrappedOldowanToolRepository,
-  ToolSchemaProperties,
 } from './types';
 import { CallToolRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
-import { createSseServerHono } from './transport/sse-hono';
 import type { HonoServerWithPort } from './types';
 import { createRestServerHono } from './transport/rest-http';
 import { Hono } from 'hono';
@@ -59,20 +57,11 @@ export class RestApiWrappedOldowanServer implements IOldowanServer {
     const port = opts?.port ?? DEFAULT_PORT;
     const endpoint = opts?.endpoint ?? DEFAULT_ENDPOINT;
 
-    const sseServer = createSseServerHono({
-      server: this.mcpServer,
-      endpoint,
-    });
-
     const restApiServer = createRestServerHono({
       server: this.mcpServer,
     });
 
-    const honoServer = new Hono();
-    honoServer.route('', restApiServer);
-    honoServer.route('', sseServer);
-
-    this.honoServer = Object.assign(honoServer, { port });
+    this.honoServer = Object.assign(restApiServer, { port });
   }
 
   addTool(tool: RestApiWrappedOldowanTool) {
