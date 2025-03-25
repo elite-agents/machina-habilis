@@ -43,3 +43,12 @@ export const ZModelSettings = z.object({
 export type ModelSettings = z.infer<typeof ZModelSettings>;
 
 export type IMessageLifecycle = z.infer<typeof ZMessageLifecycle>;
+
+export type MemoryFunction = (
+  lifecycle: IMessageLifecycle,
+) => Promise<IMessageLifecycle>;
+
+export type MemoryService = {
+  recallMemory: MemoryFunction;
+  createMemory: MemoryFunction;
+};

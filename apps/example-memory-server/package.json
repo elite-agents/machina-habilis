@@ -7,7 +7,6 @@
     "start": "bun run index.ts"
   },
   "dependencies": {
-    "@elite-agents/mnemon": "workspace:*",
     "hono": "^4.7.0",
     "zod": "^3.24.1",
     "@ai-sdk/openai": "latest",

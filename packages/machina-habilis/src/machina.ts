@@ -2,48 +2,103 @@ import { type IMessageLifecycle } from './types';
 import type { Keypair } from '@solana/web3.js';
 import { invokeLLM } from './llm';
 import { nanoid } from 'nanoid';
-import type {
-  IMachinaAgent,
-  IMachinaAgentOpts,
-  ModelSettings,
-  OldowanToolDefinition,
-} from './types';
+import type { MemoryService, MemoryFunction, ModelSettings } from './types';
+import type { OldowanToolDefinition } from '@elite-agents/oldowan';
 import type { SimplePersona } from './persona';
-import type { HabilisServer } from './habilis';
-export class MachinaAgent implements IMachinaAgent {
-  habilisServer: HabilisServer;
+import { HabilisServer } from './habilis';
 
+export type IMachinaAgentOpts = {
   persona: SimplePersona;
-  abilityNames: Set<string>;
   llm: ModelSettings;
   keypair: Keypair;
+  abilities?: OldowanToolDefinition[];
+  habilisServer?: HabilisServer;
+  memoryService?: MemoryService;
+};
+
+/**
+ * A Machina agent that can call tools.
+ *
+ * @example
+ * ```typescript
+ * const agent = new MachinaAgent({
+ *   persona: {
+ *     name: 'John Doe',
+ *     bio: ['John Doe is a helpful assistant.'],
+ *   },
+ *   abilities: [],
+ *   llm: {
+ *     model: 'gpt-3.5-turbo',
+ *     provider: 'openai',
+ *   },
+ *   keypair: {
+ *     publicKey: '0x1234567890',
+ *     privateKey: '0x1234567890',
+ *   },
+ * });
+ * ```
+ */
+export class MachinaAgent {
+  habilisServer?: HabilisServer;
+
+  persona: SimplePersona;
+  llm: ModelSettings;
+  keypair: Keypair;
+  abilities: OldowanToolDefinition[];
 
   abilityMap: Map<string, OldowanToolDefinition>;
 
-  constructor(habilisServer: HabilisServer, opts: IMachinaAgentOpts) {
-    this.habilisServer = habilisServer;
+  memoryService?: MemoryService;
+
+  constructor(opts: IMachinaAgentOpts) {
+    this.habilisServer = opts.habilisServer;
     this.persona = opts.persona;
-    this.abilityNames = new Set(opts.abilityNames);
+    this.abilities = opts.abilities ?? [];
+
     this.llm = opts.llm;
     this.keypair = opts.keypair;
 
-    this.abilityMap = new Map(
-      Array.from(habilisServer.toolsMap.entries()).filter(([key]) =>
-        this.abilityNames.has(key),
-      ),
-    );
+    this.memoryService = opts.memoryService;
+
+    this.abilityMap =
+      this.habilisServer?.toolsMap ??
+      new Map(this.abilities.map((ability) => [ability.id, ability]));
   }
 
-  learnAbility(ability: OldowanToolDefinition) {
-    this.abilityMap.set(ability.id, ability);
-    this.abilityNames.add(ability.id);
+  /**
+   * Calls a tool either through HabilisServer if available or directly using the ability map
+   * @param toolName The name/ID of the tool to call
+   * @param args Arguments to pass to the tool
+   * @param streamTextHandler Optional callback for streaming text updates
+   * @returns The result of the tool execution
+   */
+  async callTool(
+    toolName: string,
+    args: any,
+    streamTextHandler?: (message: string) => void,
+  ): Promise<any> {
+    // If HabilisServer is available, delegate to it
+    if (this.habilisServer) {
+      return this.habilisServer.callTool(toolName, args, streamTextHandler);
+    }
+
+    // Otherwise, use the local ability map
+    const tool = this.abilityMap.get(toolName);
+    if (!tool) {
+      console.error(`Tool ${toolName} not found in ability map`);
+      return `Tool ${toolName} not found`;
+    }
+
+    return HabilisServer.callToolWithRetries(tool, tool.serverUrl, args, {
+      retryCount: 0,
+      callback: streamTextHandler,
+    });
   }
 
   async message(
     message: string,
     opts?: {
       channelId?: string;
-      callback?: (lifecycle: IMessageLifecycle) => void;
       streamTextHandler?: (text: string) => void;
     },
   ): Promise<IMessageLifecycle> {
@@ -63,26 +118,17 @@ export class MachinaAgent implements IMachinaAgent {
       actionsLog: [],
     };
 
-    const tools = this.abilityMap
-      .values()
-      .toArray()
-      .map((tool) => ({
-        ...tool,
-        name: tool.id,
-      }));
+    const tools = Array.from(this.abilityMap.values()).map((tool) => ({
+      ...tool,
+      name: tool.id,
+    }));
 
-    // If this agent has a recall memory tool, recall context from it
-    if (this.habilisServer.recallContextTool) {
-      // Recall context from memory server
-      const contextResults = await this.habilisServer.callTool(
-        this.habilisServer.recallContextTool,
-        {
-          lifecycle,
-        },
-      );
+    console.log('Tools:', tools);
 
-      console.log('Context Results:', contextResults);
-
+    // Recall context from memory if available
+    const contextResults = await this.memoryService?.recallMemory(lifecycle);
+    console.log('Context Results:', contextResults);
+    if (contextResults && contextResults.context) {
       lifecycle.context = contextResults.context;
     }
 
@@ -114,9 +160,9 @@ export class MachinaAgent implements IMachinaAgent {
           openaiResponse.choices[0].message.content ||
           `Using ability - ${toolName}`;
 
-        opts?.callback?.(lifecycle);
+        opts?.streamTextHandler?.(lifecycle.output);
 
-        const toolResult = await this.habilisServer.callTool(
+        const toolResult = await this.callTool(
           toolName,
           toolArgs,
           opts?.streamTextHandler,
@@ -138,16 +184,13 @@ export class MachinaAgent implements IMachinaAgent {
         lifecycle.output = openaiResponse?.choices[0].message.content ?? '';
       }
 
-      // If this agent has an add knowledge tool, add the knowledge to the memory server
-      if (this.habilisServer.addKnowledgeTool) {
-        this.habilisServer.callTool(this.habilisServer.addKnowledgeTool, {
-          lifecycle,
-        });
-      }
+      // Add knowledge to memory if available
+      await this.memoryService?.createMemory(lifecycle);
     }
 
     return lifecycle;
   }
+
   /**
    * args for tool calls could have a concatenated JSON value. example format "{}{}"
    * this function parses and extracts the value and returns it as a merged object
