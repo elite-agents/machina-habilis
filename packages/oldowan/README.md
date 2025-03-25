@@ -9,6 +9,8 @@
 - 🔄 Built-in proxy server for secure tool access
 - 🌐 REST API wrapping for existing endpoints
 - 📦 Type-safe tool development with TypeScript
+- 📚 OpenAPI 3.0 specifications support
+- 🌍 HTTP transport for improved compatibility and reliability
 - ⚡ Bun runtime optimized for fast development
 
 ## Installation
@@ -54,13 +56,12 @@ import { weatherTool } from './tools/weather';
 
 const server = new OldowanServer('Weather Service', '1.0.0', {
   tools: [weatherTool],
-  port: 3000, // SSE server port
+  port: 3000, // HTTP server port
 });
 
 // Start the server with Bun
 Bun.serve({
   ...server,
-  idleTimeout: 255, // Need this to keep SSE connection alive
 });
 ```
 
@@ -70,9 +71,9 @@ Bun.serve({
 bun run server.ts
 ```
 
-## REST API Wrapping
+## REST API Wrapping with OpenAPI Support
 
-Oldowan can also wrap existing REST APIs into MCP-compatible tools. The constructor for `RestApiOldowanServer` takes a `IRestApiWrappedOldowanToolRepository` as an argument, which is a repository of `RestApiWrappedOldowanTool`s.
+Oldowan can wrap existing REST APIs into MCP-compatible tools with OpenAPI 3.0 specifications. This enables proper documentation and type safety for your API endpoints.
 
 ```typescript
 import {
@@ -80,7 +81,7 @@ import {
   RestApiWrappedOldowanServer,
 } from '@elite-agents/oldowan';
 
-// Create a wrapped API endpoint
+// Create a wrapped API endpoint with OpenAPI definitions
 const weatherApiTool = new RestApiWrappedOldowanTool(
   {
     name: 'weather_api',
@@ -89,6 +90,24 @@ const weatherApiTool = new RestApiWrappedOldowanTool(
     url: 'https://api.weather.com/:city',
     pathParams: { city: 'string' },
     queryParams: { unit: 'string' },
+    // OpenAPI response definitions
+    responses: {
+      200: {
+        description: 'Successful response',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                temp: { type: 'number' },
+                unit: { type: 'string' },
+                conditions: { type: 'string' },
+              },
+            },
+          },
+        },
+      },
+    },
   },
   'https://weather-service.com',
 );
@@ -112,10 +131,11 @@ Define tools with:
 
 ### Server Features
 
-- Automatic SSE server setup
+- HTTP transport for reliable communication
 - CORS-enabled proxy server
 - Health check endpoint
 - Request forwarding to MCP backend
+- OpenAPI 3.0 documentation generation
 
 ## Error Handling
 
@@ -147,7 +167,7 @@ new RestApiWrappedOldowanServer(
   toolRepository: IRestApiWrappedOldowanToolRepository,
   options?: {
     port?: number;    // default: 6004
-    endpoint?: string // default: '/sse'
+    endpoint?: string // default: '/api'
   }
 )
 ```

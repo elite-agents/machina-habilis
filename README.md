@@ -1,34 +1,49 @@
 # Machina Habilis 🛠️ - TypeScript Framework for Tool-Using Autonomous Agents
 
-**Machina Habilis** is an evolutionary step in AI agent development - a TypeScript framework enabling sophisticated tool usage through the Model Context Protocol (MCP). Named after the Homo Habilis, humanity's first tool-using species, it comprises three core components:
+**Machina Habilis** is a lightweight TypeScript framework enabling sophisticated tool usage through the Model Context Protocol (MCP). Named after the Homo Habilis, humanity's first tool-using species, it comprises two core libraries:
 
-1. **🪨 @elite-agents/oldowan** - Foundational tool server implementation that allows you to quickly build custom agent tools or wrap existing APIs into MCP-compatible tools
+1. **🪨 @elite-agents/oldowan** - Foundational tool server implementation that allows you to quickly build custom agent tools or wrap existing APIs into MCP-compatible tools with HTTP transport and OpenAPI 3.0 support with payment-gating
 2. **🛠️ @elite-agents/machina-habilis** - Tool-first agent library with:
-   - `HabilisServer`: Infrastructure layer for tool management
-   - `MachinaAgent`: Cognitive layer for conversation handling
-3. **🧠 @elite-agents/mnemon** - Memory MCP server that allows you to store and retrieve memories from a variety of storage systems
+   - `MachinaAgent`: Cognitive layer for conversation handling that connects directly to LLMs and memory systems
+   - `HabilisServer`: Optional infrastructure layer for tool management and MCP connection orchestration
+   - `Mnemon`: Simple memory system that enables agents to store and retrieve contextual information
 
 ```mermaid
 graph TD
-    A[MachinaAgent] -->|Talks Via| B[HabilisServer]
-    B -->|MCP| C[Oldowan Tools Server]
-    B -->|MCP| D[3rd-party Tools Server]
-    B -->|MCP| E[Mnemon Memory Server]
-    C --> F[External APIs]
-    D --> G[Other Services]
-    E --> H[Custom Memory System]
+    subgraph "With HabilisServer"
+        A1[MachinaAgent] -->|Talks Via| B[HabilisServer]
+        B -->|MCP| D[Oldowan Tools Server]
+        B -->|MCP| E[3rd-party Tools Server]
+        A1 -->|Connects to| F[Custom Memory System]
+        A1 -->|Connects to| LLM1[LLM Service]
+        D --> G[External APIs]
+        E --> H[Other Services]
+    end
+
+    subgraph "Without Habilis Server"
+        A2[MachinaAgent] -->|MCP| D2[Oldowan Tools Server]
+        A2 -->|MCP| E2[3rd-party Tools Server]
+        A2 -->|Connects to| F2[Custom Memory System]
+        A2 -->|Connects to| LLM2[LLM Service]
+        D2 --> G2[External APIs]
+        E2 --> H2[Other Services]
+    end
 ```
 
 ## Features
 
-- **Layered Architecture**  
-  Clear separation between infrastructure (HabilisServer) and cognition (MachinaAgent)
+- **Flexible Architecture**  
+  MachinaAgent can operate with HabilisServer for tool orchestration or connect directly to MCP tools for different deployment scenarios
+- **Direct LLM Integration**  
+  Seamless connections to AI models from OpenAI, Anthropic, Google, etc.
+- **Customizable Memory Management**  
+  Bring your own memory system or use the included Mnemon implementation
 - **Distributed Tool Ecosystem**  
   Discover/use tools across multiple MCP servers
-- **Secure Protocol**  
-  End-to-end encrypted tool communications
-- **Multi-Model Runtime**  
-  OpenAI, Anthropic, Google, etc.
+- **Stateless MCP Servers**  
+  Uses the latest MCP Spec of HTTP (not SSE) so MCP servers can be deployed in a stateless manner
+- **OpenAPI 3.0 Support**  
+  Define and expose tool endpoints with standardized documentation
 
 ```bash
 bun add @elite-agents/oldowan
@@ -36,7 +51,8 @@ bun add @elite-agents/oldowan
 
 - MCP-compliant tool servers
 - Automatic validation & security
-- Zero-config proxy setup
+- Zero-config server setup
+- REST API wrapping with OpenAPI specifications
 
 ## Quick Start
 
@@ -46,26 +62,17 @@ bun add @elite-agents/oldowan
 bun install
 ```
 
-2. **Start core services** (from repository root):
+2. **Start example services** (from repository root):
 
 ```bash
 docker compose up --build
 ```
 
-3. **Launch builder UI**:
-
-```bash
-cd apps/machina-habilis-builder
-bun dev
-```
-
-Access the development environment at `http://localhost:5173`
-
 > **Note**: Requires [Docker](https://docker.com) and [Bun](https://bun.sh) installed
 
 ## Using The Framework
 
-1. **Create Agent**:
+1. **Create Agent with HabilisServer**:
 
 ```typescript
 import { MachinaAgent, HabilisServer } from '@elite-agents/habilis';
@@ -90,7 +97,35 @@ const agent = new MachinaAgent(habilisServer, {
 });
 ```
 
-2. **Use Your Agent**:
+2. **Create Standalone Agent**:
+
+```typescript
+import { MachinaAgent } from '@elite-agents/habilis';
+import { Keypair } from '@solana/web3.js';
+
+const agent = new MachinaAgent(null, {
+  persona: {
+    name: 'Task Assistant',
+    bio: ['Efficient', 'Precise'],
+  },
+  abilities: {
+    weather: {
+      name: 'get_weather',
+      description: 'Get weather information',
+      schema: { location: 'string' },
+    },
+    // Other abilities
+  },
+  llm: {
+    provider: 'anthropic',
+    name: 'claude-3-opus',
+    apiKey: 'sk-your-key',
+  },
+  keypair: Keypair.generate(),
+});
+```
+
+3. **Use Your Agent**:
 
 ```typescript
 const response = await agent.message("What's the weather in Nairobi?", {
@@ -117,6 +152,8 @@ console.log(response.output);
 - LLM reasoning pipelines
 - Contextual conversation state
 - Persona enforcement
+- Direct tool execution (when used standalone)
+- Memory operations for context management
 
 ### Operational Flow
 
@@ -149,10 +186,16 @@ sequenceDiagram
 2. **Distributed Cognition**  
    Tools remain decoupled from agent core
 
-3. **Protocol-first Design**  
+3. **Flexible Deployment**  
+   Use with HabilisServer for local systems or standalone for distributed applications
+
+4. **Protocol-first Design**  
    MCP enables cross-platform interoperability
 
-4. **Secure Foundation**  
+5. **HTTP and OpenAPI Standards**  
+   Built on reliable and widely-adopted web standards
+
+6. **Secure Foundation**  
    Crypto-native identity & permissions
 
 ## License
