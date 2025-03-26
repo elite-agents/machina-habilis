@@ -7,33 +7,44 @@ import {
 import { HTTPClientTransport } from './HTTPClientTransport';
 
 /**
- * A server that coordinates calls to tools from MCP servers.
+ * A server that coordinates calls to tools from Model Context Protocol (MCP) servers.
  *
- * This class is used to initialize the server with a pre-existing set of tools
- * or connect to multiple MCP servers to load all available tools.
+ * This class is responsible for:
+ * - Managing connections to MCP servers
+ * - Loading and caching available tools
+ * - Providing a unified interface for tool execution
+ * - Handling retry logic and error recovery for tool calls
  *
  * It can be optionally used by the MachinaAgent class to call tools.
- * This is useful in low latency environments where tools are called frequently.
- * The HabilisServer becomes the single point of contact for all tool calls.
+ * In low latency environments where tools are called frequently,
+ * the HabilisServer becomes the single point of contact for all tool calls.
  *
  * @example
  * ```typescript
+ * // Initialize with MCP server URLs
  * const habilisServer = new HabilisServer();
  * await habilisServer.init(['https://mcp.example.com']);
- * ```
  *
+ * // Call a tool
+ * const result = await habilisServer.callTool('tool-id', { param: 'value' });
+ * ```
  */
 export class HabilisServer {
+  /** Array of MCP server URLs that the server is connected to */
   mcpServers: string[] = [];
 
+  /** Map of tool IDs to their definitions */
   toolsMap = new Map<string, OldowanToolDefinition>();
 
   /**
    * Initialize the server with a pre-existing set of tools.
+   *
    * This method is used when tools have already been loaded from cache,
-   * avoiding the need to connect to MCP servers again.
+   * avoiding the need to connect to MCP servers again. It populates the
+   * internal tools map and records server URLs from the tool definitions.
    *
    * @param tools - Array of pre-loaded tool definitions
+   * @returns A promise that resolves when all tools have been added
    */
   async initWithCache(tools: OldowanToolDefinition[]) {
     // Add tools to the existing toolsMap
@@ -50,10 +61,13 @@ export class HabilisServer {
 
   /**
    * Initialize the server by connecting to multiple MCP servers.
-   * This method connects to each server and loads all available tools.
-   * Use this when starting fresh without cached tools.
+   *
+   * This method connects to each specified server and loads all available tools.
+   * Use this when starting fresh without cached tools. Each server connection
+   * is established in parallel.
    *
    * @param mcpServers - Array of MCP server URLs to connect to
+   * @returns A promise that resolves when all servers have been connected and their tools loaded
    */
   async init(mcpServers: string[]) {
     const mcpServerPromises = mcpServers.map((server) =>
@@ -63,7 +77,20 @@ export class HabilisServer {
     await Promise.all(mcpServerPromises);
   }
 
-  async addMCPServer(url: string) {
+  /**
+   * Adds a new MCP server
+   *
+   * This static method handles the server connection process, including:
+   * - Establishing connection with retry logic
+   * - Retrieving server version information
+   * - Listing and transforming available tools
+   * - Closing the connection when finished
+   *
+   * @param url - URL of the MCP server to add
+   * @returns A promise that resolves with an object containing server information and added tools
+   * @throws Error if connection, version retrieval, or tool listing fails after retries
+   */
+  static async addMCPServer(url: string) {
     try {
       const client = new Client({
         name: url,
@@ -95,7 +122,7 @@ export class HabilisServer {
                 `Failed to connect to MCP server ${url} after ${maxRetries} attempts:`,
                 lastError,
               );
-              return [];
+              throw lastError;
             }
 
             await new Promise((resolve) => setTimeout(resolve, 1000 * retries)); // Exponential backoff
@@ -111,7 +138,7 @@ export class HabilisServer {
           `Failed to get version info from MCP server ${url}:`,
           error,
         );
-        return [];
+        throw error;
       }
 
       const serverName = versionInfo?.name ?? url;
@@ -121,33 +148,74 @@ export class HabilisServer {
         tools = (await client.listTools()).tools;
       } catch (error) {
         console.error(`Failed to list tools from MCP server ${url}:`, error);
-        return [];
+        throw error;
       }
 
       const toolsAdded = tools.map((tool) => {
         const toolName = deriveToolUniqueName(serverName, tool.name);
-
-        this.toolsMap.set(toolName, {
+        const oldowanToolDefinition: OldowanToolDefinition = {
           ...tool,
           id: toolName,
           serverUrl: url,
-        });
+        };
 
-        return toolName;
+        return oldowanToolDefinition;
       });
-
-      this.mcpServers.push(url);
 
       // disconnect from the client
       await client.close();
 
-      return toolsAdded;
+      const serverId = `${serverName.replace(/[^a-zA-Z0-9-]+/g, '-')}`;
+
+      const serverInfo = {
+        id: serverId,
+        url: url,
+        name: serverName,
+        version: versionInfo?.version ?? 'Unknown',
+        createdAt: Date.now(),
+      };
+
+      return { serverInfo, toolsAdded };
     } catch (error) {
       console.error(`Unexpected error adding MCP server ${url}:`, error);
-      return [];
+      throw error;
     }
   }
 
+  /**
+   * Instance method to add an MCP server to this HabilisServer instance.
+   *
+   * This method utilizes the static addMCPServer method to connect to the server,
+   * then adds the retrieved tools to this instance's toolsMap and records the server URL.
+   *
+   * @param url - URL of the MCP server to add
+   * @returns A promise that resolves with server information and added tools
+   * @throws Error if the static addMCPServer method throws an error
+   */
+  async addMCPServer(url: string) {
+    const result = await HabilisServer.addMCPServer(url);
+
+    result.toolsAdded.forEach((tool) => {
+      this.toolsMap.set(tool.id, tool);
+    });
+
+    this.mcpServers.push(url);
+
+    return result;
+  }
+
+  /**
+   * Calls a tool by its ID with the provided arguments.
+   *
+   * This method looks up the tool in the toolsMap, then delegates the actual
+   * call to the static callToolWithRetries method. It includes error handling
+   * for tools that cannot be found.
+   *
+   * @param toolId - Unique identifier of the tool to call
+   * @param args - Arguments to pass to the tool
+   * @param callback - Optional callback function to receive progress updates
+   * @returns A promise that resolves with the tool's result or an error message
+   */
   async callTool(
     toolId: string,
     args: any,
@@ -167,6 +235,22 @@ export class HabilisServer {
     });
   }
 
+  /**
+   * Calls a tool with retry logic for handling connection issues and timeouts.
+   *
+   * This static method:
+   * - Establishes a new connection for each tool call
+   * - Executes the tool call with a timeout
+   * - Handles error conditions including timeouts
+   * - Implements exponential backoff for retries
+   * - Parses and returns results appropriately
+   *
+   * @param tool - Tool definition to call
+   * @param url - URL of the MCP server that hosts the tool
+   * @param args - Arguments to pass to the tool
+   * @param opts - Options for the call including retry count and callback
+   * @returns A promise that resolves with the tool's result or an error message
+   */
   static async callToolWithRetries(
     tool: OldowanToolDefinition,
     url: string,

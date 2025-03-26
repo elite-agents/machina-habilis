@@ -43,6 +43,7 @@ export class RESTServerTransportHono implements Transport {
   }
 
   async close(): Promise<void> {
+    this._eventEmitter.removeAllListeners('message');
     this.onclose?.();
   }
 

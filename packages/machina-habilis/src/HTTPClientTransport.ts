@@ -7,7 +7,7 @@ import {
 /**
  * Client transport for HTTP: this will connect to a server using simple HTTP POST requests
  * for both sending and receiving messages.
- * 
+ *
  * Unlike SSEClientTransport, this implementation doesn't use streaming and simply
  * makes HTTP requests and parses JSON responses.
  */
@@ -19,10 +19,7 @@ export class HTTPClientTransport implements Transport {
   onerror?: (error: Error) => void;
   onmessage?: (message: JSONRPCMessage) => void;
 
-  constructor(
-    url: URL,
-    opts?: { requestInit?: RequestInit },
-  ) {
+  constructor(url: URL, opts?: { requestInit?: RequestInit }) {
     this._url = url;
     this._requestInit = opts?.requestInit;
   }
@@ -37,6 +34,11 @@ export class HTTPClientTransport implements Transport {
 
   // send to MCP Server and parse response
   async send(message: JSONRPCMessage): Promise<void> {
+    if ('method' in message && message.method.includes('notification')) {
+      // Notifications are not expected to have a response
+      return;
+    }
+
     try {
       const headers = new Headers(this._requestInit?.headers);
       headers.set('content-type', 'application/json');
@@ -64,7 +66,9 @@ export class HTTPClientTransport implements Transport {
           const responseMessage = JSONRPCMessageSchema.parse(data);
           this.onmessage?.(responseMessage);
         } catch (error) {
-          this.onerror?.(new Error(`Failed to parse response as JSON RPC message: ${error}`));
+          this.onerror?.(
+            new Error(`Failed to parse response as JSON RPC message: ${error}`),
+          );
         }
       }
     } catch (error) {

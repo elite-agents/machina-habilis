@@ -1,7 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { OldowanTool } from './oldowan-tool';
 import type { HonoServerWithPort, IOldowanServer } from './types';
-import { Hono } from 'hono';
 import { createRestServerHono } from './transport/rest-http';
 
 // Port for the SSE server that handles MCP protocol communication
