@@ -1,6 +1,31 @@
 import * as z from 'zod';
 
-export const ZMessageLifecycle = z.object({
+const ZResponseFunctionToolCall = z.object({
+  arguments: z.string(),
+  call_id: z.string(),
+  name: z.string(),
+  type: z.literal('function_call'),
+  id: z.string().optional(),
+  status: z.enum(['in_progress', 'completed', 'incomplete']).optional(),
+});
+
+const ZResponseFunctionToolCallOutputItem = z.object({
+  call_id: z.string(),
+  output: z.string(),
+  type: z.literal('function_call_output'),
+  status: z.enum(['in_progress', 'completed', 'incomplete']).optional(),
+});
+
+const ZToolUseTuple = z.tuple([
+  ZResponseFunctionToolCall,
+  ZResponseFunctionToolCallOutputItem,
+]);
+
+export type IResponseFunctionToolCallOutputItem = z.infer<
+  typeof ZResponseFunctionToolCallOutputItem
+>;
+
+export const ZAgentPromptState = z.object({
   agentPubkey: z.string(),
   message: z.string(),
   messageId: z.string(),
@@ -10,28 +35,15 @@ export const ZMessageLifecycle = z.object({
   agentName: z.string().default(''),
   identityPrompt: z.string().nullable(),
   context: z.array(z.string()).default([]),
-  tools: z
-    .array(
-      z.object({
-        toolCall: z.object({
-          id: z.string(),
-          function: z.object({
-            name: z.string(),
-            arguments: z.string(),
-          }),
-        }),
-        result: z.string(),
-        type: z.literal('function'),
-      }),
-    )
-    .default([]),
+  tools: z.array(ZToolUseTuple).default([]),
   generatedPrompt: z.string().default(''),
   output: z.string().default(''),
   actionsLog: z.array(z.string()).default([]),
+  previousResponseId: z.string().optional(),
 });
 
 export const ZModelSettings = z.object({
-  provider: z.enum(['openai', 'anthropic']),
+  provider: z.enum(['openai', 'google']),
   endpoint: z.string(),
   name: z.string(), // gpt-4o, claude-3-5-sonnet, etc.
   apiKey: z.string(),
@@ -42,11 +54,11 @@ export const ZModelSettings = z.object({
 
 export type ModelSettings = z.infer<typeof ZModelSettings>;
 
-export type IMessageLifecycle = z.infer<typeof ZMessageLifecycle>;
+export type IAgentPromptState = z.infer<typeof ZAgentPromptState>;
 
 export type MemoryFunction = (
-  lifecycle: IMessageLifecycle,
-) => Promise<IMessageLifecycle>;
+  lifecycle: IAgentPromptState,
+) => Promise<IAgentPromptState>;
 
 export type MemoryService = {
   recallMemory: MemoryFunction;

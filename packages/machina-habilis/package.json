@@ -1,10 +1,10 @@
 {
   "name": "@elite-agents/machina-habilis",
-  "version": "0.1.5",
+  "version": "0.2.0",
   "module": "src/index.ts",
   "type": "module",
   "scripts": {
-    "build": "bun build ./src/index.ts --outdir ./dist --external @anthropic-ai/sdk --external @solana/web3.js --external openai --external hono --external zod && bun run build:types",
+    "build": "bun build ./src/index.ts --outdir ./dist --external @solana/web3.js --external openai --external hono --external zod && bun run build:types",
     "build:all": "bun install && bun build ./src/index.ts --outdir ./dist && bun run build:types",
     "dev": "bun run build --watch",
     "build:types": "tsc --emitDeclarationOnly",
@@ -21,12 +21,11 @@
     "access": "public"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.36.3",
     "@elite-agents/oldowan": "*",
     "@solana/web3.js": "^1.98.0",
     "hono": "^4.7.5",
     "nanoid": "^5.0.9",
-    "openai": "^4.83.0",
+    "openai": "^4.90.0",
     "zod": "^3.24.2"
   },
   "main": "./dist/index.js",
