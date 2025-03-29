@@ -1,8 +1,10 @@
 import OpenAI from 'openai';
-import type { IMessageLifecycle, ModelSettings } from './types';
-import Anthropic from '@anthropic-ai/sdk';
+import type { IAgentPromptState, ModelSettings } from './types';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
-import type { ChatCompletionCreateParamsNonStreaming } from 'openai/resources/chat/completions.mjs';
+import type {
+  ResponseCreateParamsBase,
+  ResponseInputItem,
+} from 'openai/resources/responses/responses.mjs';
 
 export const SYSTEM_PROMPT = `
 You are an tool-using AI agent operating within a framework that provides you with:
@@ -69,20 +71,35 @@ export async function generateEmbeddings(
         input: message,
       });
       return embedding.data[0].embedding;
-      break;
-    case 'anthropic':
-      throw new Error('Anthropic embedding not implemented');
-      break;
+    case 'google':
+      throw new Error('Google embedding not implemented');
   }
 }
 
-async function generateText(
+function createInstructionsPrompt(lifecycle: IAgentPromptState): string {
+  return `
+  <System Prompt>
+  ${SYSTEM_PROMPT}
+  </System Prompt>
+  
+  <Your Name>
+  ${lifecycle.agentName}
+  </Your Name>
+
+  <Your Identity>
+  ${lifecycle.identityPrompt}
+  </Your Identity>
+  `;
+}
+
+export async function promptLLM(
   generationModelSettings: ModelSettings,
-  prompt: string,
-  lifecycle: IMessageLifecycle,
+  lifecycle: IAgentPromptState,
   tools: Tool[],
-  streamTextHandler?: (text: string) => void,
-): Promise<OpenAI.Chat.Completions.ChatCompletion | void> {
+  streamTextHandler?: (chunk: any) => void, // Add stream handler
+): Promise<OpenAI.Responses.Response> {
+  const instructions = createInstructionsPrompt(lifecycle);
+
   switch (generationModelSettings?.provider) {
     case 'openai':
       const openai = new OpenAI({
@@ -91,204 +108,100 @@ async function generateText(
         dangerouslyAllowBrowser: true,
       });
 
-      const payload: ChatCompletionCreateParamsNonStreaming = {
+      const input: ResponseInputItem[] = [];
+
+      const context = lifecycle.context.join('\n');
+
+      if (context) {
+        input.push({
+          role: 'assistant' as const,
+          content: `<AdditionalContext>\n${context}\n</AdditionalContext>`,
+        });
+      }
+
+      input.push({
+        role: 'user' as const,
+        content: lifecycle.message,
+      });
+
+      if (lifecycle.tools.length > 0) {
+        const toolMessages = lifecycle.tools.flat();
+        input.push(...toolMessages);
+      }
+
+      const payload: ResponseCreateParamsBase = {
         model: generationModelSettings.name,
-        messages: [
-          {
-            role: 'system' as const,
-            content: SYSTEM_PROMPT,
-          },
-          {
-            role: 'user' as const,
-            content: prompt,
-          },
-        ],
+        instructions,
+        input,
         temperature: generationModelSettings.temperature,
-        max_completion_tokens: generationModelSettings.maxTokens,
+        max_output_tokens: generationModelSettings.maxTokens,
+        previous_response_id: lifecycle.previousResponseId,
         tools:
           tools?.length > 0
             ? tools.map((tool) => ({
                 type: 'function' as const,
-                function: {
-                  name: tool.name,
-                  description: tool.description,
-                  parameters: {
-                    type: tool.inputSchema.type,
-                    properties: tool.inputSchema.properties,
-                    required: Object.keys(tool.inputSchema.properties ?? {}), // strict mode requires all properties to be present
-                    additionalProperties: false,
-                  },
-                  strict: true,
+                name: tool.name,
+                description: tool.description,
+                parameters: {
+                  type: tool.inputSchema.type,
+                  properties: tool.inputSchema.properties,
+                  required: Object.keys(tool.inputSchema.properties ?? {}), // strict mode requires all properties to be present
+                  additionalProperties: false,
                 },
+                strict: true,
               }))
             : undefined,
       };
 
-      if (lifecycle.tools.length > 0) {
-        const toolMessages = lifecycle.tools.flatMap((tool) => [
-          {
-            role: 'assistant' as const,
-            tool_calls: [
-              {
-                ...tool.toolCall,
-                type: 'function' as const,
-              },
-            ],
-          },
-          {
-            role: 'tool' as const,
-            tool_call_id: tool.toolCall.id,
-            content: tool.result,
-          },
-        ]);
-        payload.messages.push(...toolMessages);
-      }
+      console.debug('Payload:', payload);
 
-      console.log('Payload:', payload);
-
-      let openaiResponse:
-        | Partial<OpenAI.Chat.Completions.ChatCompletion>
-        | undefined = {};
+      let openaiResponse: OpenAI.Responses.Response | undefined;
 
       if (streamTextHandler) {
         // Create a streaming completion with the same payload
-        const stream = await openai.chat.completions.create({
+        const stream = await openai.responses.create({
           ...payload,
           stream: true,
         });
 
         // Track both the accumulated text and tool calls across chunks
         let allText = '';
-        let toolCalls: any[] = [];
-        let currentToolCall: any = null;
 
-        // Process each chunk from the stream
-        for await (const chunk of stream) {
-          // Store the initial response metadata (id, etc.)
-          if (!openaiResponse?.id) {
-            openaiResponse =
-              chunk as unknown as OpenAI.Chat.Completions.ChatCompletion;
+        // Process each event from the stream
+        for await (const event of stream) {
+          // Update the response object
+          if ('response' in event) {
+            openaiResponse = event.response;
           }
 
-          const delta = chunk.choices[0]?.delta;
-
-          // Handle tool calls that come in chunks
-          if (delta?.tool_calls) {
-            const toolCall = delta.tool_calls[0];
-
-            // Start a new tool call if we don't have one in progress
-            if (!currentToolCall) {
-              currentToolCall = {
-                id: toolCall.id,
-                type: 'function',
-                function: {
-                  name: toolCall.function?.name || '',
-                  arguments: toolCall.function?.arguments || '',
-                },
-              };
-              toolCalls.push(currentToolCall);
-            } else {
-              // Append to existing tool call (arguments often come in multiple chunks)
-              if (toolCall.function?.arguments) {
-                currentToolCall.function.arguments +=
-                  toolCall.function.arguments;
-              }
-              if (toolCall.function?.name) {
-                currentToolCall.function.name = toolCall.function.name;
-              }
-            }
-          }
+          const type = event.type;
 
           // Handle content chunks and stream to UI
-          if (delta?.content) {
-            allText += delta.content;
-            streamTextHandler(delta.content);
+          if (type === 'response.output_text.delta') {
+            allText += event.delta;
+            streamTextHandler(event.delta);
           }
 
-          // Reset current tool call when it's complete
-          if (chunk.choices[0]?.finish_reason === 'tool_calls') {
-            currentToolCall = null;
+          if (type === 'response.completed') {
+            openaiResponse = event.response;
           }
         }
-
-        // Construct a non-streaming style response for compatibility
-        // This ensures the rest of the system works the same way for both streaming and non-streaming
-        openaiResponse.choices = [
-          {
-            index: 0,
-            logprobs: null,
-            message: {
-              role: 'assistant',
-              content: allText,
-              refusal: null,
-              tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
-            },
-            // Set finish reason based on whether we used tools
-            finish_reason: toolCalls.length > 0 ? 'tool_calls' : 'stop',
-          },
-        ];
+        // Add a check after the loop to ensure the response was received
+        if (!openaiResponse) {
+          throw new Error(
+            'LLM stream finished but no completion response was received.',
+          );
+        }
       } else {
         // Non-streaming case
-        openaiResponse = await openai.chat.completions.create(payload);
+        openaiResponse = (await openai.responses.create(
+          payload,
+        )) as OpenAI.Responses.Response;
       }
 
-      return openaiResponse as OpenAI.Chat.Completions.ChatCompletion;
-    case 'anthropic':
-      // const anthropic = new Anthropic({
-      //   apiKey: generationModelKey,
-      //   baseURL: generationModelSettings.endpoint,
-      // });
-
-      // const anthropicResponse = await anthropic.messages.create({
-      //   model: generationModelSettings.name,
-      //   system: SYSTEM_PROMPT,
-      //   messages: [
-      //     {
-      //       role: 'user',
-      //       content: userMessage,
-      //     },
-      //   ],
-      //   max_tokens: generationModelSettings.maxTokens ?? 1000,
-      //   temperature: generationModelSettings.temperature ?? 0.2,
-      // });
-
-      // return anthropicResponse.content.join('\n');
-      break;
+      return openaiResponse;
+    case 'google':
+      // Not yet implemented
+      throw new Error('Google LLM not implemented');
   }
-}
-
-function createPrompt(lifecycle: IMessageLifecycle): string {
-  return `
-  <Your Name>
-  ${lifecycle.agentName}
-  </Your Name>
-
-  <Your Identity>
-  ${lifecycle.identityPrompt}
-  </Your Identity>
-
-  <User Current Message>
-  ${lifecycle.message}
-  </User Current Message>
-
-  <Context>
-  ${lifecycle.context.join('\n')}
-  </Context>
-  `;
-}
-
-export function invokeLLM(
-  generationModelSettings: ModelSettings,
-  lifecycle: IMessageLifecycle,
-  tools: Tool[],
-  streamTextHandler?: (chunk: any) => void, // Add stream handler
-) {
-  const prompt = createPrompt(lifecycle);
-  return generateText(
-    generationModelSettings,
-    prompt,
-    lifecycle,
-    tools,
-    streamTextHandler,
-  );
 }

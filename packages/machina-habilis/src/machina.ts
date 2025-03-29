@@ -1,11 +1,16 @@
-import { type IMessageLifecycle } from './types';
+import { type IAgentPromptState } from './types';
 import type { Keypair } from '@solana/web3.js';
-import { invokeLLM } from './llm';
+import { promptLLM } from './llm';
 import { nanoid } from 'nanoid';
-import type { MemoryService, MemoryFunction, ModelSettings } from './types';
+import type {
+  IResponseFunctionToolCallOutputItem,
+  MemoryService,
+  ModelSettings,
+} from './types';
 import type { OldowanToolDefinition } from '@elite-agents/oldowan';
 import type { SimplePersona } from './persona';
 import { HabilisServer } from './habilis';
+import type { ResponseFunctionToolCall } from 'openai/resources/responses/responses.mjs';
 
 export type IMachinaAgentOpts = {
   persona: SimplePersona;
@@ -100,9 +105,11 @@ export class MachinaAgent {
     opts?: {
       channelId?: string;
       streamTextHandler?: (text: string) => void;
+      previousResponseId?: string;
+      additionalContext?: Map<string, string>;
     },
-  ): Promise<IMessageLifecycle> {
-    let lifecycle: IMessageLifecycle = {
+  ): Promise<IAgentPromptState> {
+    let agentPromptState: IAgentPromptState = {
       agentPubkey: this.keypair.publicKey.toBase58(),
       agentName: this.persona.name,
       messageId: nanoid(),
@@ -111,11 +118,16 @@ export class MachinaAgent {
       approval: '',
       channelId: opts?.channelId ?? null,
       identityPrompt: this.persona.bio.join('\n'),
-      context: [],
+      context: opts?.additionalContext
+        ? Array.from(opts.additionalContext.entries()).map(
+            ([key, value]) => `${key}: ${value}`,
+          )
+        : [],
       tools: [],
       generatedPrompt: '',
       output: '',
       actionsLog: [],
+      previousResponseId: opts?.previousResponseId,
     };
 
     const tools = Array.from(this.abilityMap.values()).map((tool) => ({
@@ -123,44 +135,46 @@ export class MachinaAgent {
       name: tool.id,
     }));
 
-    console.log('Tools:', tools);
+    console.debug('Tools:', tools);
 
-    // Recall context from memory if available
-    const contextResults = await this.memoryService?.recallMemory(lifecycle);
-    console.log('Context Results:', contextResults);
-    if (contextResults && contextResults.context) {
-      lifecycle.context = contextResults.context;
+    // if previous response id is not provided, recall context from memory if available
+    if (!opts?.previousResponseId) {
+      const contextResults =
+        await this.memoryService?.recallMemory(agentPromptState);
+      console.debug('Context Results:', contextResults);
+      if (contextResults && contextResults.context) {
+        agentPromptState.context.push(...contextResults.context);
+      }
     }
 
     // Generate Text
     let continuePrompting = true;
-    let openaiResponse;
+    let llmResponse;
     let promptCount = 0;
     const MAX_PROMPTS = 10;
 
     while (continuePrompting && promptCount < MAX_PROMPTS) {
       promptCount++;
 
-      openaiResponse = await invokeLLM(
+      llmResponse = await promptLLM(
         this.llm,
-        lifecycle,
+        agentPromptState,
         tools,
         opts?.streamTextHandler,
       );
 
-      console.log('OpenAI Response:', openaiResponse);
+      console.debug('OpenAI Response:', llmResponse);
 
-      if (openaiResponse?.choices[0].message.tool_calls) {
-        const toolCall = openaiResponse.choices[0].message.tool_calls[0];
-        const toolName = toolCall.function.name;
-        const toolCallId = toolCall.id;
-        const toolArgs = this.parseArgs(toolCall.function.arguments);
+      if (llmResponse?.output[0].type === 'function_call') {
+        const toolCall = llmResponse.output[0];
+        const toolName = toolCall.name;
+        const toolCallId = toolCall.call_id ?? '';
+        const toolArgs = this.parseArgs(toolCall.arguments);
 
-        lifecycle.output =
-          openaiResponse.choices[0].message.content ||
-          `Using ability - ${toolName}`;
+        const toolCallMessage =
+          llmResponse.output_text || `Using ability - ${toolName}   \n\n`;
 
-        opts?.streamTextHandler?.(lifecycle.output);
+        opts?.streamTextHandler?.(toolCallMessage);
 
         const toolResult = await this.callTool(
           toolName,
@@ -168,27 +182,33 @@ export class MachinaAgent {
           opts?.streamTextHandler,
         );
 
-        lifecycle.tools.push({
-          type: 'function',
-          toolCall: {
-            id: toolCallId,
-            function: {
-              name: toolName,
-              arguments: JSON.stringify(toolArgs),
-            },
+        const thisToolUse: [
+          ResponseFunctionToolCall,
+          IResponseFunctionToolCallOutputItem,
+        ] = [
+          toolCall,
+          {
+            call_id: toolCallId,
+            output: JSON.stringify(toolResult),
+            type: 'function_call_output',
+            status: 'completed',
           },
-          result: JSON.stringify(toolResult),
-        });
+        ];
+
+        agentPromptState.tools.push(thisToolUse);
       } else {
         continuePrompting = false;
-        lifecycle.output = openaiResponse?.choices[0].message.content ?? '';
+        agentPromptState.output = llmResponse?.output_text ?? '';
       }
 
       // Add knowledge to memory if available
-      await this.memoryService?.createMemory(lifecycle);
+      await this.memoryService?.createMemory(agentPromptState);
     }
 
-    return lifecycle;
+    // Once we've completed all the processing, set the previous response ID
+    agentPromptState.previousResponseId = llmResponse?.id;
+
+    return agentPromptState;
   }
 
   /**

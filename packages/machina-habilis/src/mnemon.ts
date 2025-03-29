@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
-import { ZMessageLifecycle } from './types';
-import type { MemoryFunction, MemoryService, IMessageLifecycle } from './types';
+import { ZAgentPromptState } from './types';
+import type { MemoryFunction, MemoryService, IAgentPromptState } from './types';
 import { cors } from 'hono/cors';
 
 export class MnemonServer {
@@ -26,7 +26,7 @@ export class MnemonServer {
     this.app.post('/recall-memory', async (c) => {
       const lifecycle = await c.req.json();
 
-      const result = ZMessageLifecycle.safeParse(lifecycle);
+      const result = ZAgentPromptState.safeParse(lifecycle);
       if (!result.success) {
         return c.json(
           { error: 'Invalid lifecycle payload', details: result.error },
@@ -41,7 +41,7 @@ export class MnemonServer {
     this.app.post('/create-memory', async (c) => {
       const lifecycle = await c.req.json();
 
-      const result = ZMessageLifecycle.safeParse(lifecycle);
+      const result = ZAgentPromptState.safeParse(lifecycle);
       if (!result.success) {
         return c.json(
           { error: 'Invalid lifecycle payload', details: result.error },
@@ -62,7 +62,7 @@ export class MnemonClient implements MemoryService {
     this.baseUrl = baseUrl;
   }
 
-  async recallMemory(lifecycle: IMessageLifecycle): Promise<IMessageLifecycle> {
+  async recallMemory(lifecycle: IAgentPromptState): Promise<IAgentPromptState> {
     const response = await fetch(`${this.baseUrl}/recall-memory`, {
       method: 'POST',
       headers: {
@@ -82,7 +82,7 @@ export class MnemonClient implements MemoryService {
     return memory;
   }
 
-  async createMemory(lifecycle: IMessageLifecycle): Promise<IMessageLifecycle> {
+  async createMemory(lifecycle: IAgentPromptState): Promise<IAgentPromptState> {
     const response = await fetch(`${this.baseUrl}/create-memory`, {
       method: 'POST',
       headers: {
