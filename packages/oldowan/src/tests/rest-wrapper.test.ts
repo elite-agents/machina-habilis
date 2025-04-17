@@ -116,6 +116,7 @@ describe('Oldowan Rest Wrapper', () => {
     server = new RestApiWrappedOldowanServer(toolRepository);
 
     // Mock fetch to avoid making real API calls
+    // @ts-ignore
     global.fetch = jest.fn();
   });
 
@@ -242,7 +243,7 @@ describe('Oldowan Rest Wrapper', () => {
       status: 'available',
     };
 
-    const mockFetch = global.fetch as Mock<typeof fetch>;
+    const mockFetch = global.fetch as unknown as Mock<typeof fetch>;
     mockFetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
@@ -315,7 +316,7 @@ describe('Oldowan Rest Wrapper', () => {
       status: 'available',
     };
 
-    const mockFetch = global.fetch as Mock<typeof fetch>;
+    const mockFetch = global.fetch as unknown as Mock<typeof fetch>;
     mockFetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
@@ -388,7 +389,7 @@ describe('Oldowan Rest Wrapper', () => {
     await toolRepository.create(tool);
 
     // Mock the fetch response
-    const mockFetch = global.fetch as Mock<typeof fetch>;
+    const mockFetch = global.fetch as unknown as Mock<typeof fetch>;
     mockFetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
