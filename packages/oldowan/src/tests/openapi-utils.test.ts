@@ -312,5 +312,29 @@ describe('OpenAPI Utilities', () => {
         createToolsFromOpenAPI('test-user', invalidSpec),
       ).rejects.toThrow('Invalid OpenAPI specification');
     });
+
+    test('should throw an error if an operation is missing responses', async () => {
+      const malformedOperationSpec = {
+        openapi: '3.0.0',
+        info: {
+          title: 'Malformed Operation API',
+          version: '1.0.0',
+        },
+        servers: [{ url: 'http://localhost:3000' }],
+        paths: {
+          '/test': {
+            get: {
+              operationId: 'getTest',
+              summary: 'Test Operation',
+              // Missing required 'responses' field
+            },
+          },
+        },
+      };
+
+      await expect(
+        createToolsFromOpenAPI('test-user', malformedOperationSpec),
+      ).rejects.toThrow(/requires property "responses"/);
+    });
   });
 });

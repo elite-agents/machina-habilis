@@ -167,6 +167,9 @@ export class MachinaAgent {
 
       if (llmResponse?.output[0].type === 'function_call') {
         const toolCall = llmResponse.output[0];
+
+        console.debug('Tool Call:', toolCall);
+
         const toolName = toolCall.name;
         const toolCallId = toolCall.call_id ?? '';
         const toolArgs = this.parseArgs(toolCall.arguments);

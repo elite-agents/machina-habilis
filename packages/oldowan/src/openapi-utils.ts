@@ -1,6 +1,7 @@
 import type { OpenAPIParameter, IEndpointDefinition } from './types';
 import { RestApiWrappedOldowanTool } from './rest-wrapper-tool';
-import { compileErrors, validate } from '@readme/openapi-parser';
+import { openapi } from '@readme/openapi-schemas';
+import { validate } from 'jsonschema';
 
 interface OpenAPIPathItem {
   parameters?: any[];
@@ -61,6 +62,22 @@ export async function createToolsFromOpenAPI(
   return tools;
 }
 
+function getOpenAPISchema(openapiSpec: Record<string, any>): any {
+  if (openapiSpec.swagger) {
+    return openapi.v2;
+  }
+
+  if (openapiSpec.openapi.startsWith('3.1')) {
+    return openapi.v31legacy;
+  }
+
+  if (openapiSpec.openapi.startsWith('3.0')) {
+    return openapi.v3;
+  }
+
+  throw new Error('Unsupported OpenAPI version');
+}
+
 /**
  * Create endpoint definitions from an OpenAPI spec
  * @param creator Creator of the endpoints
@@ -85,7 +102,9 @@ export async function createEndpointDefinitionsFromOpenAPI(
   try {
     // Check if servers is present
     if (!openapiSpec.servers) {
-      throw new Error('No servers found in OpenAPI spec');
+      throw new Error(
+        'No servers found in OpenAPI spec. Example: { servers: [{ url: "http://example.com" }] }',
+      );
     }
 
     /**
@@ -96,10 +115,9 @@ export async function createEndpointDefinitionsFromOpenAPI(
      * supplying it to `openapi-parser`.
      */
     const clonedSchema = JSON.parse(JSON.stringify(openapiSpec));
-
-    const result = await validate(clonedSchema);
+    const result = await validate(clonedSchema, getOpenAPISchema(openapiSpec));
     if (!result.valid) {
-      throw new Error(compileErrors(result));
+      throw new Error(result.errors.toString());
     }
   } catch (error) {
     throw new Error(
