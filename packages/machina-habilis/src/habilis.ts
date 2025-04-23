@@ -2,6 +2,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import type { TextContent } from '@modelcontextprotocol/sdk/types.js';
 import {
   deriveToolUniqueName,
+  normalizeToolName,
   type OldowanToolDefinition,
 } from '@elite-agents/oldowan';
 import { HTTPClientTransport } from './HTTPClientTransport';
@@ -152,10 +153,11 @@ export class HabilisServer {
       }
 
       const toolsAdded = tools.map((tool) => {
-        const toolName = deriveToolUniqueName(serverName, tool.name);
+        const derivedToolName = deriveToolUniqueName(serverName, tool.name);
         const oldowanToolDefinition: OldowanToolDefinition = {
           ...tool,
-          id: toolName,
+          id: derivedToolName,
+          name: normalizeToolName(tool.name),
           serverUrl: url,
         };
 
