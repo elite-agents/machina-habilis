@@ -83,6 +83,7 @@ export class MachinaAgent {
     streamTextHandler?: (message: string) => void,
   ): Promise<any> {
     // If HabilisServer is available, delegate to it
+    // TODO: sign the payload
     if (this.habilisServer) {
       return this.habilisServer.callTool(toolName, args, streamTextHandler);
     }

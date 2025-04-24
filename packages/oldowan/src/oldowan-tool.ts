@@ -1,36 +1,47 @@
 import { type CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
+import type { PaymentDetails } from './types';
 
 export class OldowanTool<T extends z.ZodRawShape> {
   name: string;
   description: string;
   schema: T;
   call: (input: Record<string, unknown>) => Promise<CallToolResult>;
+  paymentDetails?: PaymentDetails;
 
   constructor({
     name,
     description,
     schema,
     execute,
+    paymentDetails,
   }: {
     name: string;
     description: string;
     schema: T;
     execute: (input: z.infer<z.ZodObject<T>>) => Promise<unknown>;
+    paymentDetails?: PaymentDetails;
   }) {
     this.name = name;
     this.description = description;
     this.schema = schema;
     this.call = (input: Record<string, unknown>) =>
       this.toolCall(input, execute);
+    this.paymentDetails = paymentDetails;
   }
 
-  // TODO: add signature check against token gate for the tool call here
   async toolCall(
     args: Record<string, unknown>,
-    cb: (input: z.infer<z.ZodObject<typeof this.schema>>) => Promise<unknown>
+    cb: (input: z.infer<z.ZodObject<typeof this.schema>>) => Promise<unknown>,
   ) {
     try {
+      if (this.paymentDetails) {
+        // TODO: implement payment verification and signature check
+        // basically if there is no paymentDetails, then no signature check is required
+        // for best performance
+        // if signature check or payment check fails, create an error response explaining
+        // the issue to the LLM
+      }
       const validatedInput = await this.validateInput(args);
       const result = await cb(validatedInput);
       return this.createSuccessResponse(result);
