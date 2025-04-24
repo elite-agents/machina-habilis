@@ -58,13 +58,29 @@ export type IEndpointDefinition = z.infer<typeof ZEndpointDefinition>;
 export type OpenAPIParameter = z.infer<typeof ZOpenAPIParameter>;
 export type OpenAPIRequestBody = z.infer<typeof ZOpenAPIRequestBody>;
 
+export type PaymentDetails =
+  | {
+      type: 'token-gated';
+      mint: string; // SPL token mint address
+      amount: string; // Required amount (string for JSON compatibility, no decimals)
+      description?: string;
+    }
+  | {
+      type: 'subscription';
+      planId: string; // Subscription plan identifier
+      description?: string;
+    }
+  | {
+      type: 'credit';
+      amount: number; // Number of credits required
+      creditId: string; // Credit type identifier
+      description?: string;
+    };
+
 export type OldowanToolDefinition = Tool & {
   id: string;
   serverUrl: string;
-  tokenGate?: {
-    mint: string;
-    amount: bigint;
-  };
+  paymentDetails?: PaymentDetails;
 };
 
 export type OldowanSseServer = {
@@ -135,4 +151,10 @@ export type MCPServerLike = {
 
 export type HonoServerWithPort = Hono & {
   port: number;
+};
+
+export type ToolAuthArg = {
+  publicKeyBase58: string;
+  signatureBase64Url: string;
+  nonce: number;
 };

@@ -1,5 +1,4 @@
 import { type IAgentPromptState } from './types';
-import type { Keypair } from '@solana/web3.js';
 import { promptLLM } from './llm';
 import { nanoid } from 'nanoid';
 import type {
@@ -7,15 +6,25 @@ import type {
   MemoryService,
   ModelSettings,
 } from './types';
-import type { OldowanToolDefinition } from '@elite-agents/oldowan';
+import {
+  generateDeterministicPayloadForSigning,
+  type OldowanToolDefinition,
+  type ToolAuthArg,
+} from '@elite-agents/oldowan';
 import type { SimplePersona } from './persona';
 import { HabilisServer } from './habilis';
 import type { ResponseFunctionToolCall } from 'openai/resources/responses/responses.mjs';
+import {
+  signBytes,
+  verifySignature,
+  type SignatureBytes,
+  getAddressFromPublicKey,
+} from '@solana/kit';
 
 export type IMachinaAgentOpts = {
   persona: SimplePersona;
   llm: ModelSettings;
-  keypair: Keypair;
+  keypair: CryptoKeyPair;
   abilities?: OldowanToolDefinition[];
   habilisServer?: HabilisServer;
   memoryService?: MemoryService;
@@ -48,7 +57,7 @@ export class MachinaAgent {
 
   persona: SimplePersona;
   llm: ModelSettings;
-  keypair: Keypair;
+  keypair: CryptoKeyPair;
   abilities: OldowanToolDefinition[];
 
   abilityMap: Map<string, OldowanToolDefinition>;
@@ -71,6 +80,29 @@ export class MachinaAgent {
   }
 
   /**
+   * Signs the arguments for a tool call
+   * @param args The arguments to sign
+   * @returns The signed arguments
+   */
+  async signArgs(args: Record<string, unknown>): Promise<ToolAuthArg> {
+    // use current timestamp as nonce so signature cannot be replayed
+    const nonce = Date.now();
+
+    const payload = generateDeterministicPayloadForSigning(args, nonce);
+
+    const signatureBytes = await signBytes(this.keypair.privateKey, payload);
+
+    const signatureBase64Url =
+      Buffer.from(signatureBytes).toString('base64url');
+
+    const publicKeyBase58 = await getAddressFromPublicKey(
+      this.keypair.publicKey,
+    );
+
+    return { signatureBase64Url, publicKeyBase58, nonce };
+  }
+
+  /**
    * Calls a tool either through HabilisServer if available or directly using the ability map
    * @param toolName The name/ID of the tool to call
    * @param args Arguments to pass to the tool
@@ -82,9 +114,19 @@ export class MachinaAgent {
     args: any,
     streamTextHandler?: (message: string) => void,
   ): Promise<any> {
+    const { signatureBase64Url, publicKeyBase58, nonce } =
+      await this.signArgs(args);
+
     // If HabilisServer is available, delegate to it
     if (this.habilisServer) {
-      return this.habilisServer.callTool(toolName, args, streamTextHandler);
+      return this.habilisServer.callTool(toolName, args, {
+        callback: streamTextHandler,
+        auth: {
+          signatureBase64Url,
+          publicKeyBase58,
+          nonce,
+        },
+      });
     }
 
     // Otherwise, use the local ability map
@@ -97,6 +139,11 @@ export class MachinaAgent {
     return HabilisServer.callToolWithRetries(tool, tool.serverUrl, args, {
       retryCount: 0,
       callback: streamTextHandler,
+      auth: {
+        signatureBase64Url,
+        publicKeyBase58,
+        nonce,
+      },
     });
   }
 
@@ -110,7 +157,7 @@ export class MachinaAgent {
     },
   ): Promise<IAgentPromptState> {
     let agentPromptState: IAgentPromptState = {
-      agentPubkey: this.keypair.publicKey.toBase58(),
+      agentPubkey: await getAddressFromPublicKey(this.keypair.publicKey),
       agentName: this.persona.name,
       messageId: nanoid(),
       message: message,
