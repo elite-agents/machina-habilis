@@ -1,7 +1,7 @@
 {
   "name": "@elite-agents/oldowan",
   "module": "src/index.ts",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "type": "module",
   "bin": {
     "oldowan": "./dist/cli.js"
@@ -23,6 +23,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.4.1",
     "@readme/openapi-schemas": "^3.1.0",
+    "@solana/kit": "^2.1.0",
     "commander": "^11.1.0",
     "hono": "^4.7.0",
     "jsonschema": "^1.5.0",

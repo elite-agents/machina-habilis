@@ -80,7 +80,7 @@ export type PaymentDetails =
 export type OldowanToolDefinition = Tool & {
   id: string;
   serverUrl: string;
-  paymentNeeded?: PaymentDetails;
+  paymentDetails?: PaymentDetails;
 };
 
 export type OldowanSseServer = {
@@ -151,4 +151,10 @@ export type MCPServerLike = {
 
 export type HonoServerWithPort = Hono & {
   port: number;
+};
+
+export type ToolAuthArg = {
+  publicKeyBase58: string;
+  signatureBase64Url: string;
+  nonce: number;
 };

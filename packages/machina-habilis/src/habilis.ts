@@ -4,6 +4,7 @@ import {
   deriveToolUniqueName,
   normalizeToolName,
   type OldowanToolDefinition,
+  type ToolAuthArg,
 } from '@elite-agents/oldowan';
 import { HTTPClientTransport } from './HTTPClientTransport';
 
@@ -220,8 +221,11 @@ export class HabilisServer {
    */
   async callTool(
     toolId: string,
-    args: any,
-    callback?: (message: string) => void,
+    args: Record<string, unknown>,
+    opts?: {
+      auth?: ToolAuthArg;
+      callback?: (message: string) => void;
+    },
   ): Promise<any> {
     const tool = this.toolsMap.get(toolId);
     if (!tool) {
@@ -232,8 +236,8 @@ export class HabilisServer {
     const url = tool.serverUrl;
 
     return HabilisServer.callToolWithRetries(tool, url, args, {
+      ...opts,
       retryCount: 0,
-      callback,
     });
   }
 
@@ -256,10 +260,11 @@ export class HabilisServer {
   static async callToolWithRetries(
     tool: OldowanToolDefinition,
     url: string,
-    args: any,
+    args: Record<string, unknown>,
     opts: {
       retryCount?: number;
       callback?: (message: string) => void;
+      auth?: ToolAuthArg;
     } = {},
   ): Promise<any> {
     const MAX_RETRIES = 2; // Up to 2 retries (3 attempts total)
@@ -274,10 +279,13 @@ export class HabilisServer {
 
       await client.connect(new HTTPClientTransport(new URL(url)));
 
+      // Prepare tool arguments with optional auth data
+      const toolArgs = Object.assign({}, args, { auth: opts.auth });
+
       const rawResult = await client.callTool(
         {
           name: tool.name,
-          arguments: args,
+          arguments: toolArgs,
         },
         undefined,
         {
