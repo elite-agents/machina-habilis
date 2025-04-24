@@ -23,6 +23,7 @@
   "dependencies": {
     "@elite-agents/oldowan": "workspace:*",
     "@solana/kit": "^2.1.0",
+    "@types/json-schema": "^7.0.15",
     "hono": "^4.7.5",
     "nanoid": "^5.0.9",
     "openai": "^4.90.0",
