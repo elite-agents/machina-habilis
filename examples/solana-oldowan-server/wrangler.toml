@@ -1,0 +1,14 @@
+name = "solana-oldowan-server"
+main = "index.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat", "nodejs_compat_populate_process_env"]
+
+
+# Environment variables are now defined in .dev.vars for local development
+# and need to be set as secrets in the Cloudflare dashboard for production
+
+[build]
+command = "bun run build"
+
+[env.local]
+vars = { "BLINK_BASE_URL" = "http://localhost:8787" }

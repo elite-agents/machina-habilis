@@ -4,7 +4,7 @@
   "module": "index.ts",
   "type": "module",
   "workspaces": [
-    "apps/*",
+    "examples/*",
     "packages/*"
   ],
   "scripts": {
