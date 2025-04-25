@@ -5,6 +5,7 @@ import type {
   ResponseCreateParamsBase,
   ResponseInputItem,
 } from 'openai/resources/responses/responses.mjs';
+import type { JSONSchema7, JSONSchema7TypeName } from 'json-schema';
 
 export const SYSTEM_PROMPT = `
 You are an tool-using AI agent operating within a framework that provides you with:
@@ -144,18 +145,43 @@ export async function promptLLM(
         previous_response_id: lifecycle.previousResponseId,
         tools:
           tools?.length > 0
-            ? tools.map((tool) => ({
-                type: 'function' as const,
-                name: tool.name,
-                description: tool.description,
-                parameters: {
-                  type: tool.inputSchema.type,
-                  properties: tool.inputSchema.properties,
-                  required: Object.keys(tool.inputSchema.properties ?? {}), // strict mode requires all properties to be present
-                  additionalProperties: false,
-                },
-                strict: true,
-              }))
+            ? tools.map((tool) => {
+                const inputSchema = tool.inputSchema as JSONSchema7;
+                const properties = inputSchema.properties;
+
+                const required = inputSchema.required ?? [];
+
+                // Make non-required properties nullable
+                if (properties) {
+                  Object.keys(properties).forEach((propKey) => {
+                    const prop = properties[propKey] as JSONSchema7;
+                    if (
+                      !required.includes(propKey) &&
+                      prop.type !== 'null' &&
+                      prop.type?.[0] !== 'null' &&
+                      !prop.type?.includes?.('null')
+                    ) {
+                      prop.type = [
+                        prop.type as JSONSchema7TypeName,
+                        'null',
+                      ].filter(Boolean) as JSONSchema7TypeName[];
+                    }
+                  });
+                }
+
+                return {
+                  type: 'function' as const,
+                  name: tool.name,
+                  description: tool.description,
+                  parameters: {
+                    type: tool.inputSchema.type,
+                    properties,
+                    required: Object.keys(tool.inputSchema.properties ?? {}), // strict mode requires all properties to be present
+                    additionalProperties: false,
+                  },
+                  strict: true,
+                };
+              })
             : undefined,
       };
 

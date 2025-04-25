@@ -1,0 +1,26 @@
+{
+  "name": "solana-oldowan-server",
+  "module": "index.ts",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --env local index.ts",
+    "build": "bun build index.ts --target=bun --outdir=dist"
+  },
+  "dependencies": {
+    "@elite-agents/oldowan": "workspace:*",
+    "@metaplex-foundation/mpl-core": "^1.3.0",
+    "@metaplex-foundation/mpl-toolbox": "^0.10.0",
+    "@metaplex-foundation/umi-bundle-defaults": "^1.2.0",
+    "@metaplex-foundation/umi-signer-wallet-adapters": "^1.2.0",
+    "@solana/web3.js": "^1.90.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250421.0",
+    "@types/bun": "latest"
+  },
+  "engines": {
+    "node": ">=22.14.0",
+    "bun": ">=1.2.2"
+  }
+}

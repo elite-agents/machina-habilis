@@ -1,3 +1,5 @@
+import type { PaymentDetails } from './types';
+
 /**
  * Derives a unique name for a tool based on the server name and tool name.
  *
@@ -34,11 +36,14 @@ export const generateDeterministicPayloadForSigning = (
   const args = Object.assign({}, argsWithoutNonce, { nonce });
 
   // then order the args so the signature is deterministic
+  // ignore nullish values
   const orderedArgs = Object.keys(args)
     .sort()
     .reduce(
       (acc, key) => {
-        acc[key] = args[key];
+        if (args[key] != null) {
+          acc[key] = args[key];
+        }
         return acc;
       },
       {} as Record<string, unknown>,
@@ -46,3 +51,37 @@ export const generateDeterministicPayloadForSigning = (
 
   return Buffer.from(JSON.stringify(orderedArgs), 'utf-8');
 };
+
+/**
+ * Generates a human-readable description for PaymentDetails.
+ * If an explicit description exists, it's returned.
+ * Otherwise, a description is generated based on the payment type and its details.
+ *
+ * @param details - The PaymentDetails object.
+ * @returns A string describing the payment requirement.
+ */
+export function generatePaymentDescription(details: PaymentDetails): string {
+  // Return existing description if provided
+  if (details.description) {
+    return details.description;
+  }
+
+  // Generate description based on type if none exists
+  switch (details.type) {
+    case 'token-gated':
+      // Note: Assumes 'amount' doesn't need special formatting (e.g., for decimals, which the type comment says aren't present)
+      return `Requires holding ${details.amountUi} of the token with mint address ${details.mint}.`;
+    case 'subscription':
+      return `Requires an active subscription to the '${details.planId}' plan.`;
+    case 'credit':
+      return `Costs ${details.amount} credits of type '${details.creditId}'.`;
+    default:
+      // This ensures that if new types are added to PaymentDetails,
+      // the compiler will warn us if they aren't handled here.
+      const exhaustiveCheck: never = details;
+      console.warn(
+        `Unhandled payment type in generatePaymentDescription: ${JSON.stringify(exhaustiveCheck)}`,
+      );
+      return 'Unknown payment requirement.';
+  }
+}

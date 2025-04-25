@@ -62,7 +62,7 @@ export type PaymentDetails =
   | {
       type: 'token-gated';
       mint: string; // SPL token mint address
-      amount: string; // Required amount (string for JSON compatibility, no decimals)
+      amountUi: number; // Amount in UI decimals
       description?: string;
     }
   | {

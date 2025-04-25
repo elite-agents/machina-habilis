@@ -65,7 +65,7 @@ export interface JupiterSwapResponse {
 
 async function getTokenDecimals(
   connection: Connection,
-  tokenAddress: string
+  tokenAddress: string,
 ): Promise<number> {
   try {
     console.log('connection:', connection.rpcEndpoint);
@@ -82,7 +82,7 @@ export async function constructSwapTransaction(
   walletPublicKey: PublicKey,
   inputTokenCA: string,
   outputTokenCA: string,
-  amount: number
+  amount: number,
 ) {
   try {
     // Get the decimals for the input token
@@ -94,7 +94,7 @@ export async function constructSwapTransaction(
     // Calculate adjusted amount with decimals
     const amountBN = new BigNumber(amount);
     const adjustedAmount = amountBN.multipliedBy(
-      new BigNumber(10).pow(decimals)
+      new BigNumber(10).pow(decimals),
     );
 
     console.log('Fetching quote with params:', {
@@ -105,13 +105,13 @@ export async function constructSwapTransaction(
 
     // Get quote from Jupiter API
     const quoteResponse = await fetch(
-      `https://quote-api.jup.ag/v6/quote?inputMint=${inputTokenCA}&outputMint=${outputTokenCA}&amount=${adjustedAmount}&slippageBps=50`
+      `https://quote-api.jup.ag/v6/quote?inputMint=${inputTokenCA}&outputMint=${outputTokenCA}&amount=${adjustedAmount}&slippageBps=50`,
     );
     const quoteData = (await quoteResponse.json()) as JupiterQuoteResponse;
 
     if (!quoteData || quoteData.error) {
       throw new Error(
-        `Failed to get quote: ${quoteData?.error || 'Unknown error'}`
+        `Failed to get quote: ${quoteData?.error || 'Unknown error'}`,
       );
     }
 
@@ -136,7 +136,7 @@ export async function constructSwapTransaction(
       throw new Error(
         `Failed to get swap transaction: ${
           swapData?.error || 'No swap transaction returned'
-        }`
+        }`,
       );
     }
 
@@ -146,7 +146,7 @@ export async function constructSwapTransaction(
         : new BigNumber(await getTokenDecimals(connection, outputTokenCA));
 
     const outputUIAmount = new BigNumber(
-      quoteData.otherAmountThreshold
+      quoteData.otherAmountThreshold,
     ).dividedBy(new BigNumber(10).pow(outputTokenDecimals));
 
     return {

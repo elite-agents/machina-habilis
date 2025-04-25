@@ -4,13 +4,13 @@
   "module": "index.ts",
   "type": "module",
   "workspaces": [
-    "apps/*",
+    "examples/*",
     "packages/*"
   ],
   "scripts": {
     "build": "bun run --filter './packages/*' --cached build",
     "dev": "bun run --filter './packages/*' --cached dev",
-    "test": "bun test",
+    "test:ci": "bun test --reporter=junit --reporter-outfile=./junit.xml --coverage",
     "clean": "rm -rf node_modules && rm -rf apps/*/node_modules && rm -rf packages/*/node_modules",
     "publish": "bun run --filter './packages/*' --cached publish:package"
   },

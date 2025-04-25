@@ -1,14 +1,15 @@
 import { OldowanTool } from '@elite-agents/oldowan';
 import { z } from 'zod';
 
-const tokenBurnToolSchema = {
+const tokenVolumeHolderCountToolSchema = {
   token: z
     .enum(['ki', 'gene'])
-    .describe('token name to use to get its burn data'),
+    .describe('token name to use to get its holder, volume count data'),
 };
 
 const FLIPSIDE_API_KEY = '744d64da-da43-441f-963d-09bb247230fb';
 const FLIPSIDE_JSON_RPC_URL = 'https://api-v2.flipsidecrypto.xyz/json-rpc';
+
 const headers = {
   'Content-Type': 'application/json',
   'x-api-key': FLIPSIDE_API_KEY,
@@ -18,10 +19,13 @@ const headers = {
 const KI_TOKEN_MINT = `kiGenopAScF8VF31Zbtx2Hg8qA5ArGqvnVtXb83sotc`;
 const GENE_TOKEN_MINT = `GENEtH5amGSi8kHAtQoezp1XEXwZJ8vcuePYnXdKrMYz`;
 
-export const tokenBurnTool = new OldowanTool<typeof tokenBurnToolSchema>({
-  name: 'tokenBurn',
-  description: 'Token (KI, Genopets, Gene) Burn amount data by weekly',
-  schema: tokenBurnToolSchema,
+export const tokenVolumeHolderCountTool = new OldowanTool<
+  typeof tokenVolumeHolderCountToolSchema
+>({
+  name: 'tokenVolumeHolderCountTool',
+  description:
+    'Get token(KI, Genopets, Gene) holder count(buy, sell, ratio), volume(buy, sell) data by weekly',
+  schema: tokenVolumeHolderCountToolSchema,
   execute: async (input) => {
     const { token } = input;
 
@@ -38,38 +42,29 @@ export const tokenBurnTool = new OldowanTool<typeof tokenBurnToolSchema>({
       params: [
         {
           sql: `
-            WITH token_actions AS (
-              -- Get burn amounts
-              SELECT 
-                  DATE_TRUNC('week', block_timestamp) AS week_date,
-                  burn_amount/POW(10, decimal) AS burn_amount,
-                  0 AS mint_amount
-              FROM solana.defi.fact_token_burn_actions
-              WHERE mint = '${tokenMint}'
-              AND block_timestamp >= DATEADD(day, -70, CURRENT_TIMESTAMP)
-              AND succeeded = true
-              
-              UNION ALL
-              
-              -- Get mint amounts
-              SELECT 
-                  DATE_TRUNC('week', block_timestamp) AS week_date,
-                  0 AS burn_amount,
-                  mint_amount/POW(10, decimal) AS mint_amount
-              FROM solana.defi.fact_token_mint_actions
-              WHERE mint = '${tokenMint}'
-              AND block_timestamp >= DATEADD(day, -70, CURRENT_TIMESTAMP)
-              AND succeeded = true
-          )
-    
-          SELECT 
-              week_date,
-              SUM(burn_amount) AS total_burned,
-              SUM(mint_amount) AS total_minted,
-              SUM(mint_amount - burn_amount) AS net_amount
-          FROM token_actions
-          GROUP BY 1
-          ORDER BY week_date DESC;
+            WITH dex_activity AS (
+            SELECT 
+                DATE_TRUNC('day', block_timestamp) as trade_date,
+                COUNT(CASE WHEN swap_to_mint = '${tokenMint}' THEN 1 END) as buy_count,
+                COUNT(CASE WHEN swap_from_mint = '${tokenMint}' THEN 1 END) as sell_count,
+                SUM(CASE WHEN swap_to_mint = '${tokenMint}' THEN swap_to_amount ELSE 0 END) as buy_volume,
+                SUM(CASE WHEN swap_from_mint = '${tokenMint}' THEN swap_from_amount ELSE 0 END) as sell_volume
+            FROM solana.defi.ez_dex_swaps
+            WHERE (swap_from_mint = '${tokenMint}' 
+                OR swap_to_mint = '${tokenMint}')
+                AND block_timestamp >= DATEADD('day', -70, CURRENT_TIMESTAMP)
+            GROUP BY 1
+            )
+            SELECT 
+                trade_date,
+                buy_count,
+                sell_count,
+                ROUND(buy_count::FLOAT / NULLIF(sell_count, 0), 2) as buy_sell_ratio,
+                buy_volume,
+                sell_volume,
+                ROUND(buy_volume::FLOAT / NULLIF(sell_volume, 0), 2) as volume_ratio
+            FROM dex_activity
+            ORDER BY trade_date DESC;
           `,
           ttlMinutes: 60,
           maxAgeMinutes: 60,
@@ -84,8 +79,8 @@ export const tokenBurnTool = new OldowanTool<typeof tokenBurnToolSchema>({
         result?: { queryRun?: { id?: string } };
       }>(FLIPSIDE_JSON_RPC_URL, {
         method: 'POST',
-        body: JSON.stringify(requestBody),
         headers,
+        body: JSON.stringify(requestBody),
       });
 
       const queryRunId = data?.result?.queryRun?.id;
@@ -107,6 +102,7 @@ export const tokenBurnTool = new OldowanTool<typeof tokenBurnToolSchema>({
             };
           }>(FLIPSIDE_JSON_RPC_URL, {
             method: 'POST',
+            headers,
             body: JSON.stringify({
               jsonrpc: '2.0',
               id: 2,
@@ -122,10 +118,9 @@ export const tokenBurnTool = new OldowanTool<typeof tokenBurnToolSchema>({
                 },
               ],
             }),
-            headers,
           });
           queryResultData = response?.result?.rows;
-          if ((queryResultData!?.length ?? 0) > 0) {
+          if ((queryResultData?.length ?? 0) > 0) {
             break;
           }
 

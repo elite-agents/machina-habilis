@@ -1,5 +1,5 @@
 import { type IAgentPromptState } from './types';
-import { promptLLM } from './llm';
+import { promptLLM, getPromptPayload } from './llm';
 import { nanoid } from 'nanoid';
 import type {
   IResponseFunctionToolCallOutputItem,
@@ -14,12 +14,7 @@ import {
 import type { SimplePersona } from './persona';
 import { HabilisServer } from './habilis';
 import type { ResponseFunctionToolCall } from 'openai/resources/responses/responses.mjs';
-import {
-  signBytes,
-  verifySignature,
-  type SignatureBytes,
-  getAddressFromPublicKey,
-} from '@solana/kit';
+import { signBytes, getAddressFromPublicKey } from '@solana/kit';
 
 export type IMachinaAgentOpts = {
   persona: SimplePersona;
@@ -76,7 +71,9 @@ export class MachinaAgent {
 
     this.abilityMap =
       this.habilisServer?.toolsMap ??
-      new Map(this.abilities.map((ability) => [ability.id, ability]));
+      new Map(
+        this.abilities.map((ability) => [ability.id ?? ability.name, ability]),
+      );
   }
 
   /**
@@ -179,7 +176,7 @@ export class MachinaAgent {
 
     const tools = Array.from(this.abilityMap.values()).map((tool) => ({
       ...tool,
-      name: tool.id,
+      name: tool.id ?? tool.name,
     }));
 
     console.debug('Tools:', tools);

@@ -4,8 +4,8 @@ import {
   beforeEach,
   afterEach,
   describe,
-  jest,
   type Mock,
+  mock,
 } from 'bun:test';
 import { RestApiWrappedOldowanTool } from '../rest-wrapper-tool';
 import { RestApiWrappedOldowanServer } from '../rest-wrapper-server';
@@ -109,19 +109,23 @@ class InMemoryToolRepository
 describe('Oldowan Rest Wrapper', () => {
   let toolRepository: InMemoryToolRepository;
   let server: RestApiWrappedOldowanServer;
+  const mockFetch = mock();
+
+  const originalFetch = global.fetch;
 
   beforeEach(() => {
     // Create a fresh repository for each test
     toolRepository = new InMemoryToolRepository();
     server = new RestApiWrappedOldowanServer(toolRepository);
-
     // Mock fetch to avoid making real API calls
     // @ts-ignore
-    global.fetch = jest.fn();
+    global.fetch = mockFetch;
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    mockFetch.mockRestore();
+    mock.restore();
+    global.fetch = originalFetch;
   });
 
   // TEST 1: Initialize RestApiWrappedOldowanTool with an example endpoint
