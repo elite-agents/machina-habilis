@@ -31,9 +31,8 @@ export class OldowanServer implements IOldowanServer {
     opts.tools.forEach((tool) => {
       const description = tool.paymentDetails
         ? tool.description +
-          '\n\n<Payment Details>' +
-          generatePaymentDescription(tool.paymentDetails) +
-          '</Payment Details>'
+          '\n\n' +
+          generatePaymentDescription(tool.paymentDetails)
         : tool.description;
 
       const schema = tool.paymentDetails

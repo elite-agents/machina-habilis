@@ -16,9 +16,14 @@ export const deriveToolUniqueName = (serverName: string, toolName: string) => {
   return toolUniqueName;
 };
 
+/**
+ * Normalizes a tool name by replacing any non-alphanumeric/underscore/hyphen characters with underscores.
+ *
+ * @param toolName - The name of the tool
+ * @returns The normalized tool name
+ */
 export const normalizeToolName = (toolName: string) => {
-  // Normalize tool name by replacing any non-alphanumeric/underscore characters with underscores
-  return `${toolName.replace(/[^a-zA-Z0-9_]+/g, '_')}`;
+  return `${toolName.replace(/[^a-zA-Z0-9_-]+/g, '_')}`;
 };
 
 /**
@@ -54,34 +59,127 @@ export const generateDeterministicPayloadForSigning = (
 
 /**
  * Generates a human-readable description for PaymentDetails.
- * If an explicit description exists, it's returned.
- * Otherwise, a description is generated based on the payment type and its details.
+ * A description is generated based on the payment type and its details.
+ * If an additional description is provided, it is appended to the generated description.
  *
  * @param details - The PaymentDetails object.
  * @returns A string describing the payment requirement.
  */
 export function generatePaymentDescription(details: PaymentDetails): string {
-  // Return existing description if provided
-  if (details.description) {
-    return details.description;
-  }
+  // Generate description based on type
+  let baseDescription = '';
 
-  // Generate description based on type if none exists
   switch (details.type) {
     case 'token-gated':
-      // Note: Assumes 'amount' doesn't need special formatting (e.g., for decimals, which the type comment says aren't present)
-      return `Requires holding ${details.amountUi} of the token with mint address ${details.mint}.`;
+      baseDescription = `Requires holding <Amount>${details.amountUi}</Amount> of the token with mint address <Mint>${details.mint}</Mint>.`;
+      break;
     case 'subscription':
-      return `Requires an active subscription to the '${details.planId}' plan.`;
+      baseDescription = `Requires an active subscription to the <PlanId>${details.planId}</PlanId> plan.`;
+      break;
     case 'credit':
-      return `Costs ${details.amount} credits of type '${details.creditId}'.`;
-    default:
-      // This ensures that if new types are added to PaymentDetails,
-      // the compiler will warn us if they aren't handled here.
-      const exhaustiveCheck: never = details;
-      console.warn(
-        `Unhandled payment type in generatePaymentDescription: ${JSON.stringify(exhaustiveCheck)}`,
-      );
-      return 'Unknown payment requirement.';
+      baseDescription = `Costs <Amount>${details.amount}</Amount> credits of type <CreditId>${details.creditId}</CreditId>.`;
+      break;
   }
+
+  if (details.description) {
+    return `<PaymentDetails>${baseDescription}\n\n<Additional Description>${details.description}</Additional Description></PaymentDetails>`;
+  } else {
+    return `<PaymentDetails>${baseDescription}</PaymentDetails>`;
+  }
+}
+
+// Helper function to extract value from a simple tag
+function extractValue(text: string, tagName: string): string | null {
+  const startTag = `<${tagName}>`;
+  const endTag = `</${tagName}>`;
+  const startIndex = text.indexOf(startTag);
+  const endIndex = text.indexOf(endTag);
+
+  if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
+    return text.substring(startIndex + startTag.length, endIndex).trim();
+  }
+  return null;
+}
+
+/**
+ * Extracts payment details from a description with PaymentDetails tags.
+ *
+ * @param description - The description string to extract payment details from.
+ * @returns The extracted payment details, or undefined if no payment details are found.
+ */
+export function extractPaymentDetailsFromDescription(
+  description: string,
+): PaymentDetails | undefined {
+  const fullDescTrimmed = description.trim();
+
+  // 1. Extract content within <PaymentDetails>
+  const paymentDetailsContent = extractValue(fullDescTrimmed, 'PaymentDetails');
+  if (!paymentDetailsContent) {
+    return undefined; // No PaymentDetails wrapper found
+  }
+
+  // 2. Extract optional description from <Additional Description> tag within the content
+  const optionalDesc =
+    extractValue(paymentDetailsContent, 'Additional Description') || undefined;
+
+  // 3. Parse core details from the paymentDetailsContent
+  let paymentDetails: PaymentDetails | undefined = undefined;
+
+  // --- Try Token-gated ---
+  const amountUiStr_tg = extractValue(paymentDetailsContent, 'Amount');
+  const mint_tg = extractValue(paymentDetailsContent, 'Mint');
+  if (amountUiStr_tg && mint_tg) {
+    if (
+      paymentDetailsContent.includes('Requires holding') &&
+      paymentDetailsContent.includes('token with mint address')
+    ) {
+      const amountUi = parseFloat(amountUiStr_tg);
+      if (!isNaN(amountUi)) {
+        paymentDetails = {
+          type: 'token-gated',
+          amountUi,
+          mint: mint_tg,
+          description: optionalDesc,
+        };
+      }
+    }
+  }
+
+  // --- Try Subscription ---
+  if (!paymentDetails) {
+    const planId_sub = extractValue(paymentDetailsContent, 'PlanId');
+    if (planId_sub) {
+      if (paymentDetailsContent.includes('Requires an active subscription')) {
+        paymentDetails = {
+          type: 'subscription',
+          planId: planId_sub,
+          description: optionalDesc,
+        };
+      }
+    }
+  }
+
+  // --- Try Credit ---
+  if (!paymentDetails) {
+    const amountStr_cr = extractValue(paymentDetailsContent, 'Amount');
+    const creditId_cr = extractValue(paymentDetailsContent, 'CreditId');
+    if (amountStr_cr && creditId_cr) {
+      if (
+        paymentDetailsContent.includes('Costs') &&
+        paymentDetailsContent.includes('credits of type')
+      ) {
+        const amount = parseInt(amountStr_cr, 10);
+        if (!isNaN(amount)) {
+          paymentDetails = {
+            type: 'credit',
+            amount,
+            creditId: creditId_cr,
+            description: optionalDesc,
+          };
+        }
+      }
+    }
+  }
+
+  return paymentDetails;
 }
