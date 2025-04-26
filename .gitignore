@@ -176,3 +176,5 @@ dist
 
 # Files ending in .db
 *.db
+
+junit.xml

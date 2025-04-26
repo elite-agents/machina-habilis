@@ -2,6 +2,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import type { TextContent } from '@modelcontextprotocol/sdk/types.js';
 import {
   deriveToolUniqueName,
+  extractPaymentDetailsFromDescription,
   normalizeToolName,
   type OldowanToolDefinition,
   type ToolAuthArg,
@@ -99,11 +100,11 @@ export class HabilisServer {
         version: '1.0.0',
       });
 
-      console.log('Connecting to MCP server:', url);
+      console.debug('Connecting to MCP server:', url);
 
       try {
         await client.connect(new HTTPClientTransport(new URL(url)));
-        console.log('Connected to MCP server:', url);
+        console.debug('Connected to MCP server:', url);
       } catch (error) {
         let retries = 0;
         const maxRetries = 3;
@@ -154,12 +155,17 @@ export class HabilisServer {
       }
 
       const toolsAdded = tools.map((tool) => {
-        const derivedToolName = deriveToolUniqueName(serverName, tool.name);
+        const derivedToolName = deriveToolUniqueName(url, tool.name);
+        const paymentDetails = extractPaymentDetailsFromDescription(
+          tool.description ?? '',
+        );
+
         const oldowanToolDefinition: OldowanToolDefinition = {
           ...tool,
           id: derivedToolName,
           name: normalizeToolName(tool.name),
           serverUrl: url,
+          paymentDetails,
         };
 
         return oldowanToolDefinition;
