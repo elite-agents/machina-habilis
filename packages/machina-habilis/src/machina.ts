@@ -14,36 +14,38 @@ import {
 import type { SimplePersona } from './persona';
 import { HabilisServer } from './habilis';
 import type { ResponseFunctionToolCall } from 'openai/resources/responses/responses.mjs';
-import { signBytes, getAddressFromPublicKey } from '@solana/kit';
+import {
+  signBytes,
+  getAddressFromPublicKey,
+  createKeyPairFromBytes,
+} from '@solana/kit';
 
 export type IMachinaAgentOpts = {
   persona: SimplePersona;
   llm: ModelSettings;
-  keypair: CryptoKeyPair;
+  keypairBase64Url: string;
   abilities?: OldowanToolDefinition[];
   habilisServer?: HabilisServer;
   memoryService?: MemoryService;
 };
 
 /**
- * A Machina agent that can call tools.
+ * MachinaAgent is an interactive agent that:
+ * - Maintains a persona and LLM settings.
+ * - Signs and authenticates tool calls with a Solana keypair.
+ * - Routes and executes tools via HabilisServer or local abilities.
+ * - Manages streaming, retries, and stateful prompting loops.
+ * - Recalls and stores conversational memory.
  *
  * @example
  * ```typescript
  * const agent = new MachinaAgent({
- *   persona: {
- *     name: 'John Doe',
- *     bio: ['John Doe is a helpful assistant.'],
- *   },
+ *   persona: { name: 'John Doe', bio: ['John Doe is a helpful assistant.'] },
+ *   llm: { model: 'gpt-3.5-turbo', provider: 'openai' },
+ *   keypairBase64Url: 'YOUR_BASE64URL_KEYPAIR',
  *   abilities: [],
- *   llm: {
- *     model: 'gpt-3.5-turbo',
- *     provider: 'openai',
- *   },
- *   keypair: {
- *     publicKey: '0x1234567890',
- *     privateKey: '0x1234567890',
- *   },
+ *   habilisServer: serverInstance,
+ *   memoryService: memoryServiceInstance,
  * });
  * ```
  */
@@ -52,20 +54,36 @@ export class MachinaAgent {
 
   persona: SimplePersona;
   llm: ModelSettings;
-  keypair: CryptoKeyPair;
+  keypair?: CryptoKeyPair;
+  keypairBase64Url: string;
   abilities: OldowanToolDefinition[];
 
   abilityMap: Map<string, OldowanToolDefinition>;
 
   memoryService?: MemoryService;
 
+  /**
+   * Creates a new MachinaAgent instance.
+   * @param opts Initialization options for the agent.
+   * @param opts.persona The persona containing name and bio.
+   * @param opts.llm LLM model settings for generating responses.
+   * @param opts.keypairBase64Url Base64url-encoded key pair for signing.
+   * @param opts.abilities Optional list of tool definitions the agent can call.
+   * @param opts.habilisServer Optional HabilisServer to delegate tool calls.
+   * @param opts.memoryService Optional memory service for context recall and storage.
+   */
   constructor(opts: IMachinaAgentOpts) {
     this.habilisServer = opts.habilisServer;
     this.persona = opts.persona;
     this.abilities = opts.abilities ?? [];
 
     this.llm = opts.llm;
-    this.keypair = opts.keypair;
+    this.keypairBase64Url = opts.keypairBase64Url;
+
+    const keypairBytes = Buffer.from(this.keypairBase64Url, 'base64url');
+    if (keypairBytes.length !== 64) {
+      throw new Error('Keypair must be exactly 64 bytes long');
+    }
 
     this.memoryService = opts.memoryService;
 
@@ -74,6 +92,23 @@ export class MachinaAgent {
       new Map(
         this.abilities.map((ability) => [ability.id ?? ability.name, ability]),
       );
+  }
+
+  /**
+   * Lazily initializes and returns the agent's Solana keypair.
+   *
+   * If a CryptoKeyPair is already cached, returns it directly;
+   * otherwise decodes the Base64URL string and imports a new keypair.
+   *
+   * @returns A Promise resolving to the agent's CryptoKeyPair used for signing.
+   */
+  private async getKeypair() {
+    return (
+      this.keypair ??
+      (await createKeyPairFromBytes(
+        Buffer.from(this.keypairBase64Url, 'base64url'),
+      ))
+    );
   }
 
   /**
@@ -87,13 +122,18 @@ export class MachinaAgent {
 
     const payload = generateDeterministicPayloadForSigning(args, nonce);
 
-    const signatureBytes = await signBytes(this.keypair.privateKey, payload);
+    const keypairToSignWith = await this.getKeypair();
+
+    const signatureBytes = await signBytes(
+      keypairToSignWith.privateKey,
+      payload,
+    );
 
     const signatureBase64Url =
       Buffer.from(signatureBytes).toString('base64url');
 
     const publicKeyBase58 = await getAddressFromPublicKey(
-      this.keypair.publicKey,
+      keypairToSignWith.publicKey,
     );
 
     return { signatureBase64Url, publicKeyBase58, nonce };
@@ -144,6 +184,16 @@ export class MachinaAgent {
     });
   }
 
+  /**
+   * Sends a message to the agent and processes it through the LLM, handling tool calls and memory.
+   * @param message The input message to process.
+   * @param opts Optional settings for the message.
+   * @param opts.channelId ID of the communication channel.
+   * @param opts.streamTextHandler Callback for streaming text updates.
+   * @param opts.previousResponseId Previous message ID to continue context.
+   * @param opts.additionalContext Additional context key/value pairs.
+   * @returns The updated agent prompt state after processing.
+   */
   async message(
     message: string,
     opts?: {
@@ -153,8 +203,12 @@ export class MachinaAgent {
       additionalContext?: Map<string, string>;
     },
   ): Promise<IAgentPromptState> {
+    const agentPubkey = await getAddressFromPublicKey(
+      (await this.getKeypair()).publicKey,
+    );
+
     let agentPromptState: IAgentPromptState = {
-      agentPubkey: await getAddressFromPublicKey(this.keypair.publicKey),
+      agentPubkey,
       agentName: this.persona.name,
       messageId: nanoid(),
       message: message,
@@ -259,8 +313,9 @@ export class MachinaAgent {
   }
 
   /**
-   * args for tool calls could have a concatenated JSON value. example format "{}{}"
-   * this function parses and extracts the value and returns it as a merged object
+   * Parses concatenated JSON strings into a single merged object.
+   * @param args A string containing one or more JSON object segments.
+   * @returns An object merging all parsed JSON key/value pairs.
    */
   parseArgs(args: string) {
     try {

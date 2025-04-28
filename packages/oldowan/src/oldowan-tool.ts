@@ -1,12 +1,13 @@
 import { type CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
-import type { PaymentDetails, ToolAuthArg } from './types';
+import { type PaymentDetails, type ToolAuthArg } from './types';
 import {
   verifySignature,
   type SignatureBytes,
   getBase58Encoder,
 } from '@solana/kit';
 import { generateDeterministicPayloadForSigning } from './utils';
+import { ED25519_ALGORITHM_IDENTIFIER } from './crypto';
 
 export class OldowanTool<T extends z.ZodRawShape> {
   name: string;
@@ -76,7 +77,7 @@ export class OldowanTool<T extends z.ZodRawShape> {
         const publicKey = await crypto.subtle.importKey(
           'raw',
           getBase58Encoder().encode(publicKeyBase58),
-          { name: 'Ed25519' },
+          ED25519_ALGORITHM_IDENTIFIER,
           true,
           ['verify'],
         );
