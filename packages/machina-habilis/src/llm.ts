@@ -149,22 +149,13 @@ export async function promptLLM(
                 const inputSchema = tool.inputSchema as JSONSchema7;
                 const properties = inputSchema.properties;
 
-                const required = inputSchema.required ?? [];
-
-                // Make non-required properties nullable
                 if (properties) {
                   Object.keys(properties).forEach((propKey) => {
                     const prop = properties[propKey] as JSONSchema7;
-                    if (
-                      !required.includes(propKey) &&
-                      prop.type !== 'null' &&
-                      prop.type?.[0] !== 'null' &&
-                      !prop.type?.includes?.('null')
-                    ) {
-                      prop.type = [
-                        prop.type as JSONSchema7TypeName,
-                        'null',
-                      ].filter(Boolean) as JSONSchema7TypeName[];
+                    if (!prop.type) {
+                      // if there is no prop type, make it null
+                      // this happens when the property is any()
+                      prop.type = ['null'];
                     }
                   });
                 }

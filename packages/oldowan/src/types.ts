@@ -58,24 +58,33 @@ export type IEndpointDefinition = z.infer<typeof ZEndpointDefinition>;
 export type OpenAPIParameter = z.infer<typeof ZOpenAPIParameter>;
 export type OpenAPIRequestBody = z.infer<typeof ZOpenAPIRequestBody>;
 
-export type PaymentDetails =
-  | {
-      type: 'token-gated';
-      mint: string; // SPL token mint address
-      amountUi: number; // Amount in UI decimals
-      description?: string;
-    }
-  | {
-      type: 'subscription';
-      planId: string; // Subscription plan identifier
-      description?: string;
-    }
-  | {
-      type: 'credit';
-      amount: number; // Number of credits required
-      creditId: string; // Credit type identifier
-      description?: string;
-    };
+export const TokenGatedPaymentDetailsSchema = z.object({
+  type: z.literal('token-gated'),
+  mint: z.string(),
+  amountUi: z.number(),
+  description: z.string().optional(),
+});
+
+export const SubscriptionPaymentDetailsSchema = z.object({
+  type: z.literal('subscription'),
+  planId: z.string(),
+  description: z.string().optional(),
+});
+
+export const CreditPaymentDetailsSchema = z.object({
+  type: z.literal('credit'),
+  amount: z.number(),
+  creditId: z.string(),
+  description: z.string().optional(),
+});
+
+export const PaymentDetailsSchema = z.discriminatedUnion('type', [
+  TokenGatedPaymentDetailsSchema,
+  SubscriptionPaymentDetailsSchema,
+  CreditPaymentDetailsSchema,
+]);
+
+export type PaymentDetails = z.infer<typeof PaymentDetailsSchema>;
 
 export type OldowanToolDefinition = Tool & {
   id: string;

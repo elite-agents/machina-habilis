@@ -1,9 +1,5 @@
 import { describe, it, expect, afterAll } from 'bun:test';
-import {
-  OldowanServer,
-  OldowanTool,
-  type OldowanToolDefinition,
-} from '@elite-agents/oldowan';
+import { OldowanServer, OldowanTool } from '@elite-agents/oldowan';
 import { z } from 'zod';
 import { MachinaAgent } from '../machina';
 import { generateKeyPair } from '@solana/kit';
@@ -119,6 +115,7 @@ describe('Agents End-to-End Tests', async () => {
     expect(payload.tools[0]).toHaveLength(2);
     expect(payload.tools[0][0]).toHaveProperty('type', 'function_call');
     expect(payload.tools[0][1]).toHaveProperty('type', 'function_call_output');
+    expect(payload.tools[0][1].output).not.toContain('error');
     expect(payload.tools[0][0]).toHaveProperty(
       'name',
       paidAndFreeAbilityIdMap.get('PAID')!,
@@ -141,4 +138,76 @@ describe('Agents End-to-End Tests', async () => {
       });
     }).toThrowError(/'auth' is reserved/);
   });
+
+  it('should be able to call a tool with an optional parameter', async () => {
+    const mintNftTool = new OldowanTool({
+      name: 'mint_nft',
+      description: `Create an unsigned transaction to mint an NFT as a Solana BLINK.`,
+      schema: {
+        collectionMint: z
+          .string()
+          .optional()
+          .describe('Collection mint address (optional, can be null)'),
+        ownerPublicKey: z.string().describe('Owner wallet address'),
+        name: z.string().describe('NFT name'),
+        uri: z.string().describe('NFT metadata URI'),
+      },
+      async execute({ collectionMint, ownerPublicKey, name, uri }) {
+        return { collectionMint, ownerPublicKey, name, uri };
+      },
+    });
+
+    const oldowanServer = new OldowanServer('test', '1.0.0', {
+      tools: [mintNftTool],
+    });
+
+    const newServer = Bun.serve({
+      fetch: oldowanServer.honoServer.fetch,
+      port: 8081,
+    });
+
+    const { serverInfo, toolsAdded } = await HabilisServer.addMCPServer(
+      `${newServer.url.origin}/mcp`,
+    );
+
+    const newAbilities = toolsAdded.map((tool) => ({
+      id: tool.id,
+      name: tool.name,
+      description: tool.description,
+      inputSchema: tool.inputSchema,
+      serverUrl: serverInfo.url,
+      paymentDetails: tool.paymentDetails,
+    }));
+
+    const newMachinaAgent = new MachinaAgent({
+      persona: {
+        name: 'test',
+        bio: ['test bio'],
+      },
+      keypair: await generateKeyPair(),
+      llm: {
+        name: 'gpt-4o-mini',
+        provider: 'openai',
+        apiKey: process.env.OPENAI_API_KEY!,
+        endpoint: 'https://api.openai.com/v1',
+      },
+      abilities: newAbilities,
+    });
+
+    const additionalContext = new Map<string, string>();
+    additionalContext.set('User Solana Wallet', 'TEST WALLET');
+
+    const payload = await newMachinaAgent.message(
+      `Mint an NFT named "Test NFT" with URI "https://example.com/nft.json"`,
+      { additionalContext },
+    );
+
+    expect(payload.tools).toHaveLength(1);
+    expect(payload.tools[0]).toHaveLength(2);
+    expect(payload.tools[0][0]).toHaveProperty('type', 'function_call');
+    expect(payload.tools[0][1]).toHaveProperty('type', 'function_call_output');
+    expect(payload.tools[0][1].output).not.toContain('error');
+    expect(payload.tools[0][0]).toHaveProperty('name', newAbilities[0].id);
+    expect(payload.tools[0][0].call_id).toBe(payload.tools[0][1].call_id);
+  }, 10000);
 });
