@@ -62,14 +62,14 @@ describe('Agents End-to-End Tests', async () => {
   }));
 
   const keypair = await generateKeypairRawBytes();
-  const keypairBase64Url = Buffer.from(keypair).toString('base64url');
+  const keypairBase64 = Buffer.from(keypair).toString('base64');
 
   const machinaAgent = new MachinaAgent({
     persona: {
       name: 'test',
       bio: ['test bio'],
     },
-    keypairBase64Url,
+    keypairBase64,
     llm: {
       name: 'gpt-4o-mini',
       provider: 'openai',
@@ -191,7 +191,7 @@ describe('Agents End-to-End Tests', async () => {
         name: 'test',
         bio: ['test bio'],
       },
-      keypairBase64Url,
+      keypairBase64,
       llm: {
         name: 'gpt-4o-mini',
         provider: 'openai',
@@ -225,7 +225,7 @@ describe('Agents End-to-End Tests', async () => {
           name: 'test',
           bio: ['test bio'],
         },
-        keypairBase64Url: 'invalid-keypair',
+        keypairBase64: 'invalid-keypair',
         llm: {
           name: 'gpt-4o-mini',
           provider: 'openai',

@@ -23,7 +23,7 @@ import {
 export type IMachinaAgentOpts = {
   persona: SimplePersona;
   llm: ModelSettings;
-  keypairBase64Url: string;
+  keypairBase64: string;
   abilities?: OldowanToolDefinition[];
   habilisServer?: HabilisServer;
   memoryService?: MemoryService;
@@ -42,7 +42,7 @@ export type IMachinaAgentOpts = {
  * const agent = new MachinaAgent({
  *   persona: { name: 'John Doe', bio: ['John Doe is a helpful assistant.'] },
  *   llm: { model: 'gpt-3.5-turbo', provider: 'openai' },
- *   keypairBase64Url: 'YOUR_BASE64URL_KEYPAIR',
+ *   keypairBase64: 'YOUR_BASE64_KEYPAIR',
  *   abilities: [],
  *   habilisServer: serverInstance,
  *   memoryService: memoryServiceInstance,
@@ -55,7 +55,7 @@ export class MachinaAgent {
   persona: SimplePersona;
   llm: ModelSettings;
   keypair?: CryptoKeyPair;
-  keypairBase64Url: string;
+  keypairBase64: string;
   abilities: OldowanToolDefinition[];
 
   abilityMap: Map<string, OldowanToolDefinition>;
@@ -67,7 +67,7 @@ export class MachinaAgent {
    * @param opts Initialization options for the agent.
    * @param opts.persona The persona containing name and bio.
    * @param opts.llm LLM model settings for generating responses.
-   * @param opts.keypairBase64Url Base64url-encoded key pair for signing.
+   * @param opts.keypairBase64 Base64-encoded key pair for signing.
    * @param opts.abilities Optional list of tool definitions the agent can call.
    * @param opts.habilisServer Optional HabilisServer to delegate tool calls.
    * @param opts.memoryService Optional memory service for context recall and storage.
@@ -78,9 +78,9 @@ export class MachinaAgent {
     this.abilities = opts.abilities ?? [];
 
     this.llm = opts.llm;
-    this.keypairBase64Url = opts.keypairBase64Url;
+    this.keypairBase64 = opts.keypairBase64;
 
-    const keypairBytes = Buffer.from(this.keypairBase64Url, 'base64url');
+    const keypairBytes = Buffer.from(this.keypairBase64, 'base64');
     if (keypairBytes.length !== 64) {
       throw new Error('Keypair must be exactly 64 bytes long');
     }
@@ -105,9 +105,7 @@ export class MachinaAgent {
   private async getKeypair() {
     return (
       this.keypair ??
-      (await createKeyPairFromBytes(
-        Buffer.from(this.keypairBase64Url, 'base64url'),
-      ))
+      (await createKeyPairFromBytes(Buffer.from(this.keypairBase64, 'base64')))
     );
   }
 
