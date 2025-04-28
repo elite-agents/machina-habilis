@@ -1,5 +1,9 @@
 import { describe, it, expect, afterAll } from 'bun:test';
-import { OldowanServer, OldowanTool } from '@elite-agents/oldowan';
+import {
+  generateKeypairRawBytes,
+  OldowanServer,
+  OldowanTool,
+} from '@elite-agents/oldowan';
 import { z } from 'zod';
 import { MachinaAgent } from '../machina';
 import { generateKeyPair } from '@solana/kit';
@@ -57,12 +61,15 @@ describe('Agents End-to-End Tests', async () => {
     paymentDetails: tool.paymentDetails,
   }));
 
+  const keypair = await generateKeypairRawBytes();
+  const keypairBase64Url = Buffer.from(keypair).toString('base64url');
+
   const machinaAgent = new MachinaAgent({
     persona: {
       name: 'test',
       bio: ['test bio'],
     },
-    keypair: await generateKeyPair(),
+    keypairBase64Url,
     llm: {
       name: 'gpt-4o-mini',
       provider: 'openai',
@@ -184,7 +191,7 @@ describe('Agents End-to-End Tests', async () => {
         name: 'test',
         bio: ['test bio'],
       },
-      keypair: await generateKeyPair(),
+      keypairBase64Url,
       llm: {
         name: 'gpt-4o-mini',
         provider: 'openai',
@@ -210,4 +217,23 @@ describe('Agents End-to-End Tests', async () => {
     expect(payload.tools[0][0]).toHaveProperty('name', newAbilities[0].id);
     expect(payload.tools[0][0].call_id).toBe(payload.tools[0][1].call_id);
   }, 10000);
+
+  it('should throw an error if keypair is invalid', async () => {
+    expect(() => {
+      new MachinaAgent({
+        persona: {
+          name: 'test',
+          bio: ['test bio'],
+        },
+        keypairBase64Url: 'invalid-keypair',
+        llm: {
+          name: 'gpt-4o-mini',
+          provider: 'openai',
+          apiKey: process.env.OPENAI_API_KEY!,
+          endpoint: 'https://api.openai.com/v1',
+        },
+        abilities: [],
+      });
+    }).toThrowError(/Keypair must be exactly 64 bytes long/);
+  });
 });
