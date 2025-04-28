@@ -1,5 +1,5 @@
 import { type IAgentPromptState } from './types';
-import { promptLLM, getPromptPayload } from './llm';
+import { promptLLM } from './llm';
 import { nanoid } from 'nanoid';
 import type {
   IResponseFunctionToolCallOutputItem,
