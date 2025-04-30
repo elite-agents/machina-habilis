@@ -10,9 +10,7 @@
     "build": "bun build ./src/index.ts --outdir ./dist --packages external && bun build ./src/cli.ts --outdir ./dist --target bun && bun run build:types",
     "build:release": "bun build ./src/index.ts --outdir ./dist --packages external && bun build ./src/cli.ts --outdir ./dist --target node && bun run build:types",
     "dev": "bun run build --watch",
-    "build:types": "tsc --emitDeclarationOnly --declaration --outDir dist",
-    "release": "changeset publish",
-    "publish:dry": "bun run build && npm pack --dry-run"
+    "build:types": "tsc --emitDeclarationOnly --declaration --outDir dist"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.2",

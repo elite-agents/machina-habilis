@@ -7,8 +7,7 @@
     "build": "bun build ./src/index.ts --outdir ./dist --external @solana/kit --external openai --external hono --external zod && bun run build:types",
     "build:release": "bun run build",
     "dev": "bun run build --watch",
-    "build:types": "tsc --emitDeclarationOnly",
-    "release": "changeset publish"
+    "build:types": "tsc --emitDeclarationOnly"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.2",

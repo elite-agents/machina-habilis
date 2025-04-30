@@ -13,7 +13,7 @@
     "dev": "bun run --filter './packages/*' --cached dev",
     "test:ci": "bun test --reporter=junit --reporter-outfile=./junit.xml --coverage",
     "clean": "rm -rf node_modules && rm -rf apps/*/node_modules && rm -rf packages/*/node_modules",
-    "release": "bun run --filter './packages/*' --cached release"
+    "release": "bun changeset publish"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.2",

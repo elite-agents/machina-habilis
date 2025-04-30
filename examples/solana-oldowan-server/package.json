@@ -22,5 +22,6 @@
   "engines": {
     "node": ">=22.14.0",
     "bun": ">=1.2.2"
-  }
+  },
+  "private": true
 }
