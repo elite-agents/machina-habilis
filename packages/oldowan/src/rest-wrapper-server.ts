@@ -10,7 +10,6 @@ import { CallToolRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import type { HonoServerWithPort } from './types';
 import { createRestServerHono } from './transport/rest-http';
-import { Hono } from 'hono';
 
 const DEFAULT_PORT = 6004;
 const DEFAULT_ENDPOINT = '/sse';

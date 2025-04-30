@@ -2,41 +2,31 @@ import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import type {
   IEndpointDefinition,
   IRestApiWrappedOldowanTool,
-  OpenAPIParameter,
+  PaymentDetails,
   ToolSchemaProperties,
 } from './types';
-import { deriveToolUniqueName } from './utils';
 
 export class RestApiWrappedOldowanTool implements IRestApiWrappedOldowanTool {
   [key: string]: unknown;
+  id: string;
   name: string;
   description: string;
   endpointDefinition: IEndpointDefinition;
   inputSchema: Tool['inputSchema'];
-  id: string;
-  tokenGate?: {
-    mint: string;
-    amount: bigint;
-  };
+  paymentDetails?: PaymentDetails;
 
   constructor(
     endpointDefinition: IEndpointDefinition,
     opts?: {
-      tokenGate?: {
-        mint: string;
-        amount: bigint;
-      };
+      paymentDetails?: PaymentDetails;
     },
   ) {
     this.name = endpointDefinition.name;
+    this.id = endpointDefinition.name;
     this.description = endpointDefinition.description;
     this.endpointDefinition = endpointDefinition;
-    this.id = deriveToolUniqueName(
-      endpointDefinition.creator,
-      endpointDefinition.name,
-    );
 
-    this.tokenGate = opts?.tokenGate;
+    this.paymentDetails = opts?.paymentDetails;
 
     // Build inputSchema from OpenAPI parameters and requestBody
     const properties: ToolSchemaProperties = {};
