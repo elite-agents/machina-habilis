@@ -154,22 +154,24 @@ export class HabilisServer {
         throw error;
       }
 
-      const toolsAdded = tools.map((tool) => {
-        const derivedToolName = deriveToolUniqueName(url, tool.name);
-        const paymentDetails = extractPaymentDetailsFromDescription(
-          tool.description ?? '',
-        );
+      const toolsAdded = await Promise.all(
+        tools.map(async (tool) => {
+          const derivedToolName = await deriveToolUniqueName(url, tool.name);
+          const paymentDetails = extractPaymentDetailsFromDescription(
+            tool.description ?? '',
+          );
 
-        const oldowanToolDefinition: OldowanToolDefinition = {
-          ...tool,
-          id: derivedToolName,
-          name: normalizeToolName(tool.name),
-          serverUrl: url,
-          paymentDetails,
-        };
+          const oldowanToolDefinition: OldowanToolDefinition = {
+            ...tool,
+            id: derivedToolName,
+            name: normalizeToolName(tool.name),
+            serverUrl: url,
+            paymentDetails,
+          };
 
-        return oldowanToolDefinition;
-      });
+          return oldowanToolDefinition;
+        }),
+      );
 
       // disconnect from the client
       await client.close();
