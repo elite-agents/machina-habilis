@@ -17,7 +17,8 @@ const toolSchema = {
 
 const paymentDetails = {
   type: 'token-gated' as const,
-  mint: 'TEST',
+  chain: 'solana' as const,
+  tokenAddress: 'TEST',
   amountUi: 1,
   description: 'Test',
 };
@@ -50,6 +51,8 @@ describe('Agents End-to-End Tests', async () => {
   const { serverInfo, toolsAdded } = await HabilisServer.addMCPServer(
     `${server.url.origin}/mcp`,
   );
+
+  console.log('toolsAdded', toolsAdded);
 
   const abilities = toolsAdded.map((tool) => ({
     id: tool.id,

@@ -2,18 +2,39 @@ import type { PaymentDetails } from './types';
 
 /**
  * Derives a unique name for a tool based on the server name and tool name.
+ * This is the name passed to the LLM during prompts.
+ *
+ * The name is truncated to 64 characters to ensure compatibility with LLM prompt length limits.
  *
  * @param serverName - The name of the server
  * @param toolName - The name of the tool
  * @returns The unique name for the tool
  */
-export const deriveToolUniqueName = (serverName: string, toolName: string) => {
-  // Normalize server name by replacing any non-alphanumeric/hyphen characters with hyphens
+export const deriveToolUniqueName = async (
+  serverName: string,
+  toolName: string,
+) => {
+  // Hash the server name and use the first 4 bytes as the prefix
   // This ensures the server name can be safely used as part of tool identifiers
-  const normalizedServerName = `${serverName.replace(/[^a-zA-Z0-9-]+/g, '-')}`;
-  const toolUniqueName = `${normalizedServerName}_${normalizeToolName(toolName)}`;
+  const serverHashArrayBuffer = await crypto.subtle.digest(
+    'SHA-256',
+    new TextEncoder().encode(serverName),
+  );
+  const serverHashArray = Array.from(
+    new Uint8Array(serverHashArrayBuffer.slice(0, 4)),
+  );
+  const serverHash = serverHashArray
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
 
-  return toolUniqueName;
+  // make the hash a suffix so the tool name is clear
+  const toolUniqueName = `${normalizeToolName(toolName)}_${serverHash}`;
+
+  // Ensure the name doesn't exceed 64 characters
+  // Truncate if necessary
+  return toolUniqueName.length > 64
+    ? toolUniqueName.substring(63, toolUniqueName.length)
+    : toolUniqueName;
 };
 
 /**
@@ -71,7 +92,7 @@ export function generatePaymentDescription(details: PaymentDetails): string {
 
   switch (details.type) {
     case 'token-gated':
-      baseDescription = `Requires holding <Amount>${details.amountUi}</Amount> of the token with mint address <Mint>${details.mint}</Mint>.`;
+      baseDescription = `Requires holding <Amount>${details.amountUi}</Amount> of the token with mint address <Mint>${details.tokenAddress}</Mint>.`;
       break;
     case 'subscription':
       baseDescription = `Requires an active subscription to the <PlanId>${details.planId}</PlanId> plan.`;
@@ -137,8 +158,9 @@ export function extractPaymentDetailsFromDescription(
       if (!isNaN(amountUi)) {
         paymentDetails = {
           type: 'token-gated',
+          chain: 'solana',
           amountUi,
-          mint: mint_tg,
+          tokenAddress: mint_tg,
           description: optionalDesc,
         };
       }

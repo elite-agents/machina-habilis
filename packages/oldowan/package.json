@@ -11,10 +11,11 @@
     "build:node": "bun build ./src/index.ts --outdir ./dist --packages external && bun build ./src/cli.ts --outdir ./dist --target node && bun run build:types",
     "dev": "bun run build --watch",
     "build:types": "tsc --emitDeclarationOnly --declaration --outDir dist",
-    "publish:package": "bun run build:node && npm publish --access=public",
+    "release": "bun run build:node && changeset publish",
     "publish:dry": "bun run build && npm pack --dry-run"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.29.2",
     "@types/bun": "latest"
   },
   "peerDependencies": {

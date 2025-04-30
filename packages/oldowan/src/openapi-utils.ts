@@ -2,6 +2,7 @@ import type { OpenAPIParameter, IEndpointDefinition } from './types';
 import { RestApiWrappedOldowanTool } from './rest-wrapper-tool';
 import { openapi } from '@readme/openapi-schemas';
 import { validate } from 'jsonschema';
+import type { PaymentDetails } from './types';
 
 interface OpenAPIPathItem {
   parameters?: any[];
@@ -37,10 +38,7 @@ export async function createToolsFromOpenAPI(
     namePrefix?: string;
     transformFn?: string;
     headers?: Record<string, string>;
-    tokenGate?: {
-      mint: string;
-      amount: bigint;
-    };
+    paymentDetails?: PaymentDetails;
   },
 ): Promise<RestApiWrappedOldowanTool[]> {
   // Create endpoint definitions from the OpenAPI spec
@@ -55,7 +53,9 @@ export async function createToolsFromOpenAPI(
     (endpointDefinition) =>
       new RestApiWrappedOldowanTool(
         endpointDefinition,
-        options?.tokenGate ? { tokenGate: options.tokenGate } : undefined,
+        options?.paymentDetails
+          ? { paymentDetails: options.paymentDetails }
+          : undefined,
       ),
   );
 

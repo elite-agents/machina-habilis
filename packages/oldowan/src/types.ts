@@ -60,7 +60,8 @@ export type OpenAPIRequestBody = z.infer<typeof ZOpenAPIRequestBody>;
 
 export const TokenGatedPaymentDetailsSchema = z.object({
   type: z.literal('token-gated'),
-  mint: z.string(),
+  chain: z.literal('solana'),
+  tokenAddress: z.string(),
   amountUi: z.number(),
   description: z.string().optional(),
 });
@@ -85,6 +86,12 @@ export const PaymentDetailsSchema = z.discriminatedUnion('type', [
 ]);
 
 export type PaymentDetails = z.infer<typeof PaymentDetailsSchema>;
+
+export type PaymentsRequired = {
+  chain: 'solana';
+  tokenAddress: string;
+  amountUi: number;
+}[];
 
 export type OldowanToolDefinition = Tool & {
   id: string;
