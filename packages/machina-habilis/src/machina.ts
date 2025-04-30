@@ -213,7 +213,7 @@ export class MachinaAgent {
       createdAt: new Date().toISOString(),
       approval: '',
       channelId: opts?.channelId ?? null,
-      identityPrompt: this.persona.bio.join('\n'),
+      identityPrompt: this.generateIdentityPrompt(this.persona),
       context: opts?.additionalContext
         ? Array.from(opts.additionalContext.entries()).map(
             ([key, value]) => `${key}: ${value}`,
@@ -308,6 +308,45 @@ export class MachinaAgent {
     agentPromptState.previousResponseId = llmResponse?.id;
 
     return agentPromptState;
+  }
+
+  /**
+   * Generates an identity prompt for the given persona.
+   * @param persona The persona to generate the identity prompt for.
+   * @returns The identity prompt.
+   */
+  generateIdentityPrompt(persona: SimplePersona) {
+    const bio = persona.bio
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 3)
+      .map((b: string) => `- ${b}`)
+      .join('\n');
+
+    const lore = (persona?.lore || [])
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 3)
+      .map((l: string) => `- ${l}`)
+      .join('\n');
+
+    const style = persona?.style
+      ?.sort(() => Math.random() - 0.5)
+      .slice(0, 3)
+      .map((s: string) => `- ${s}`)
+      .join('\n');
+
+    const messageDirections = style
+      ? `
+      # Message Directions for ${persona.name}
+      ${style}
+      `
+      : '';
+
+    return `
+    ${bio}
+    ${lore}
+
+    ${messageDirections}
+    `;
   }
 
   /**

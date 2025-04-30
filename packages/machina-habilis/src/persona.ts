@@ -37,15 +37,15 @@ export const createPersonaSchema = z.object({
             text: z.string(),
           }),
           user: z.string(),
-        })
+        }),
       ),
-    })
+    }),
   ),
   abilities: z.array(
     z.object({
       name: z.string(),
       abilityServer: z.string(),
-    })
+    }),
   ),
 });
 
@@ -61,10 +61,15 @@ export const personaSchema = z.object({
     z.object({
       name: z.string(),
       abilityServer: z.string(),
-    })
+    }),
   ),
 });
 
 export type Persona = z.infer<typeof personaSchema>;
 
-export type SimplePersona = { name: string; bio: string[] };
+export type SimplePersona = {
+  name: string;
+  bio: string[];
+  lore?: string[];
+  style?: string[];
+};

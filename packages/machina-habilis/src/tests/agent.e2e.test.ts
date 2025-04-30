@@ -6,7 +6,6 @@ import {
 } from '@elite-agents/oldowan';
 import { z } from 'zod';
 import { MachinaAgent } from '../machina';
-import { generateKeyPair } from '@solana/kit';
 import { HabilisServer } from '../habilis';
 
 // Disable console.debug for tests
@@ -128,7 +127,7 @@ describe('Agents End-to-End Tests', async () => {
       paidAndFreeAbilityIdMap.get('PAID')!,
     );
     expect(payload.tools[0][0].call_id).toBe(payload.tools[0][1].call_id);
-  }, 10000); // longer timeout for llm response
+  }, 60000); // longer timeout for llm response
 
   it('should fail if trying to create an OldowanTool with auth in the schema', async () => {
     const badSchema = {
@@ -216,7 +215,7 @@ describe('Agents End-to-End Tests', async () => {
     expect(payload.tools[0][1].output).not.toContain('error');
     expect(payload.tools[0][0]).toHaveProperty('name', newAbilities[0].id);
     expect(payload.tools[0][0].call_id).toBe(payload.tools[0][1].call_id);
-  }, 10000);
+  }, 30000);
 
   it('should throw an error if keypair is invalid', async () => {
     expect(() => {
