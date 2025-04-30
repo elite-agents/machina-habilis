@@ -8,9 +8,10 @@
     "build:all": "bun install && bun build ./src/index.ts --outdir ./dist && bun run build:types",
     "dev": "bun run build --watch",
     "build:types": "tsc --emitDeclarationOnly",
-    "publish:package": "bun run build && npm publish --access=public"
+    "release": "bun run build && changeset publish"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.29.2",
     "@elite-agents/oldowan": "workspace:*",
     "@types/bun": "latest",
     "typescript": "^5.0.0"
