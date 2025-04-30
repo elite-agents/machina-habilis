@@ -75,53 +75,40 @@ docker compose up --build
 1. **Create Agent with HabilisServer**:
 
 ```typescript
-import { MachinaAgent, HabilisServer } from '@elite-agents/habilis';
-import { Keypair } from '@solana/web3.js';
+import { MachinaAgent, HabilisServer } from '@elite-agents/machina-habilis';
+import { generateKeypairRawBytes } from '@elite-agents/oldowan';
 
-const habilisServer = new HabilisServer('http://localhost:8080'); // Memory server
+const habilisServer = new HabilisServer('http://localhost:8080');
+await habilisServer.init(['http://localhost:8888', 'http://localhost:9999']);
 
-await habilisServer.init(['http://localhost:8888', 'http://localhost:9999']); // Tool servers
-
-const agent = new MachinaAgent(habilisServer, {
-  persona: {
-    name: 'Research Assistant',
-    bio: ['Knowledge-focused', 'Detail-oriented'],
-  },
-  abilityNames: ['web_search'],
-  llm: {
-    provider: 'openai',
-    name: 'gpt-4',
-    apiKey: 'sk-your-key',
-  },
-  keypair: Keypair.generate(),
+// Generate keypair for signing
+const keypairBytes = await generateKeypairRawBytes();
+const keypairBase64 = Buffer.from(keypairBytes).toString('base64');
+// Instantiate agent with new signature
+const agent = new MachinaAgent({
+  persona: { name: 'Research Assistant', bio: ['Knowledge-focused', 'Detail-oriented'] },
+  llm: { provider: 'openai', name: 'gpt-4', apiKey: 'sk-your-key' },
+  keypairBase64,
+  abilities: [],
+  habilisServer,
 });
 ```
 
 2. **Create Standalone Agent**:
 
 ```typescript
-import { MachinaAgent } from '@elite-agents/habilis';
-import { Keypair } from '@solana/web3.js';
+import { MachinaAgent } from '@elite-agents/machina-habilis';
+import { generateKeypairRawBytes } from '@elite-agents/oldowan';
 
-const agent = new MachinaAgent(null, {
-  persona: {
-    name: 'Task Assistant',
-    bio: ['Efficient', 'Precise'],
-  },
-  abilities: {
-    weather: {
-      name: 'get_weather',
-      description: 'Get weather information',
-      schema: { location: 'string' },
-    },
-    // Other abilities
-  },
-  llm: {
-    provider: 'anthropic',
-    name: 'claude-3-opus',
-    apiKey: 'sk-your-key',
-  },
-  keypair: Keypair.generate(),
+// Generate keypair for signing
+const keypairBytes2 = await generateKeypairRawBytes();
+const keypairBase642 = Buffer.from(keypairBytes2).toString('base64');
+// Instantiate standalone agent
+const agent = new MachinaAgent({
+  persona: { name: 'Task Assistant', bio: ['Efficient', 'Precise'] },
+  llm: { provider: 'anthropic', name: 'claude-3-opus', apiKey: 'sk-your-key' },
+  keypairBase64: keypairBase642,
+  abilities: [ { id: 'web_search', name: 'web_search', description: 'Search the web', inputSchema: { query: 'string' } } ],
 });
 ```
 
@@ -201,3 +188,15 @@ sequenceDiagram
 ## License
 
 GPL-3.0 © [Elite Agents](https://github.com/elite-agents)
+
+### API Reference
+
+```typescript
+new MachinaAgent({
+  persona: SimplePersona;
+  llm: ModelSettings;
+  keypairBase64: string;
+  abilities?: OldowanToolDefinition[];
+  habilisServer?: HabilisServer;
+  memoryService?: MemoryService;
+});

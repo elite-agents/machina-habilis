@@ -25,28 +25,31 @@ bun add @elite-agents/machina-habilis  # Updated package name
 
 ```typescript
 import { MachinaAgent, HabilisServer } from '@elite-agents/machina-habilis';
-import { Keypair } from '@solana/web3.js';
+import { generateKeypairRawBytes } from '@elite-agents/oldowan';
 
 const memoryServer = 'http://localhost:3000';
-const keypair = Keypair.generate();
+// Generate a keypair for signing
+const keypairBytes = await generateKeypairRawBytes();
+const keypairBase64 = Buffer.from(keypairBytes).toString('base64');
 
 const habilisServer = new HabilisServer(memoryServer);
 await habilisServer.init([memoryServer]); // Updated initialization pattern
 
-const agent = new MachinaAgent(habilisServer, {
+const agent = new MachinaAgent({
   // Using MachinaAgent directly
   persona: {
     name: 'Research Assistant',
     bio: ['Knowledge-focused', 'Detail-oriented', 'Curious'],
   },
-  abilityNames: ['web_search'], // Changed from 'abilities' to 'abilityNames'
   llm: {
     provider: 'openai',
     name: 'gpt-4',
     apiKey: 'sk-your-openai-key',
     endpoint: 'https://api.openai.com/v1',
   },
-  keypair: keypair,
+  keypairBase64,
+  abilities: [],
+  habilisServer,
 });
 ```
 
@@ -65,29 +68,32 @@ console.log(response.output);
 
 ```typescript
 import { MachinaAgent } from '@elite-agents/machina-habilis';
-import { Keypair } from '@solana/web3.js';
+import { generateKeypairRawBytes } from '@elite-agents/oldowan';
+
+// Generate a keypair for signing
+const keypairBytes2 = await generateKeypairRawBytes();
+const keypairBase64_2 = Buffer.from(keypairBytes2).toString('base64');
 
 // Create agent with direct ability map
-const agent = new MachinaAgent(null, {
+const agent = new MachinaAgent({
   persona: {
     name: 'Task Assistant',
     bio: ['Efficient', 'Precise', 'Helpful'],
   },
-  abilities: {
-    web_search: {
+  abilities: [
+    {
+      id: 'web_search',
       name: 'web_search',
       description: 'Search the web for information',
-      schema: { query: 'string' },
-      // Tool implementation is handled directly by MachinaAgent
+      inputSchema: { query: 'string' },
     },
-    // Add other abilities as needed
-  },
+  ],
   llm: {
     provider: 'anthropic',
     name: 'claude-3-opus',
     apiKey: 'sk-your-anthropic-key',
   },
-  keypair: Keypair.generate(),
+  keypairBase64: keypairBase64_2,
 });
 
 // Agent will handle tool calls directly
@@ -208,21 +214,19 @@ A MachinaAgent can be used in the front-end or backend. Its main focus is to cre
 ### `MachinaAgent`
 
 ```typescript
-new MachinaAgent(
-  habilisServer: HabilisServer | null,
-  config: {
-    persona: SimplePersona;
-    abilityNames?: string[];
-    abilities?: Record<string, Ability>;
-    llm: {
-      provider: string;
-      name: string;
-      apiKey: string;
-      endpoint?: string;
-    };
-    keypair: Keypair;
-  }
-)
+new MachinaAgent({
+  persona: SimplePersona;
+  abilityNames?: string[];
+  abilities?: Record<string, Ability>;
+  llm: {
+    provider: string;
+    name: string;
+    apiKey: string;
+    endpoint?: string;
+  };
+  keypairBase64: string;
+  habilisServer?: HabilisServer;
+})
 ```
 
 ### `MachinaAgent.message()`

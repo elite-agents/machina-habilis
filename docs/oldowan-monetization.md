@@ -3,7 +3,7 @@
 **Version:** 0.1 (Draft)
 **Date:** 2025-04-23
 
-### 1. Introduction
+## 1. Introduction
 
 This document outlines the Oldowan monetization features built on top of the Model Context Protocol (MCP). The goal is to provide a standardized, flexible, and secure mechanism for tool providers (MCP Servers) to charge for the usage of their AI tools and services accessed by agents (MCP Clients).
 
@@ -13,9 +13,9 @@ An **Oldowan Server** is an MCP Server with added monetization capabilities. In 
 
 The protocol is designed to be extensible, allowing for the future addition of new payment models.
 
-### 2. Core Concepts
+## 2. Core Concepts
 
-#### 2.1 Agent Authentication and Request Signing
+### 2.1 Agent Authentication and Request Signing
 
 Every request made by an agent (MCP Client) to a monetized MCP tool (Server) MUST be authenticated to verify the caller's identity.
 
@@ -25,7 +25,7 @@ Every request made by an agent (MCP Client) to a monetized MCP tool (Server) MUS
 
 This signature verification step is crucial for access gating and ensuring that payment checks are associated with the correct agent identity.
 
-#### 2.2 Payment Verification Workflow
+### 2.2 Payment Verification Workflow
 
 Once the agent's identity is successfully verified via signature checking, the MCP Server proceeds to check if the agent meets the payment requirements for accessing the tool. The protocol currently supports three primary payment models:
 
@@ -35,9 +35,9 @@ Once the agent's identity is successfully verified via signature checking, the M
 
 The specific checks depend on the payment model configured for the tool.
 
-### 3. Payment Models
+## 3. Payment Models
 
-#### 3.1 Token-Gated Access
+### 3.1 Token-Gated Access
 
 - **Concept:** Access is granted if the agent's verified Solana wallet address holds a minimum amount of a specific token.
 - **Implementation:**
@@ -46,7 +46,7 @@ The specific checks depend on the payment model configured for the tool.
   3.  Access is granted if the on-chain check confirms the token requirement is met.
 - **Use Case:** Simple access control based on token ownership, often used for community access or basic tier features.
 
-#### 3.2 Subscription Access
+### 3.2 Subscription Access
 
 - **Concept:** Access is granted if the agent holds proof of an active subscription, potentially represented by a revocable Non-Fungible Token (NFT).
 - **Implementation:**
@@ -57,7 +57,7 @@ The specific checks depend on the payment model configured for the tool.
   5.  Access is granted if an NFT with an `active` status is found.
 - **Use Case:** Recurring access to tools or services (e.g., monthly or annual plans).
 
-#### 3.3 Credit-Based Access
+### 3.3 Credit-Based Access
 
 - **Concept:** Agents pre-purchase credits, which are then consumed atomically as they use the MCP tool. Access is granted as long as the agent has a sufficient credit balance.
 - **Implementation:**
@@ -67,11 +67,11 @@ The specific checks depend on the payment model configured for the tool.
   4.  If the balance is insufficient, the server denies the request (potentially responding with information on how to purchase more credits.
 - **Use Case:** Pay-per-use models, metered billing, API call quotas, or fine-grained resource consumption.
 
-### 4. Optimization: Caching and Authorization Servers (Optional)
+## 4. Optimization: Caching and Authorization Servers (Optional)
 
 Performing on-chain checks for every request can introduce latency. To optimize performance, MCP Servers can optionally leverage trusted off-chain mechanisms:
 
-#### 4.1 Trusted Cache Server
+### 4.1 Trusted Cache Server
 
 - **Concept:** An MCP Server can be configured to trust a specific cache server that maintains a near real-time state of agent payment statuses (token holdings, subscription validity, credit balances).
 - **Implementation:**
@@ -80,7 +80,7 @@ Performing on-chain checks for every request can introduce latency. To optimize 
   3.  The cache server is responsible for monitoring the blockchain and keeping its state updated.
 - **Trust:** The security of this model relies on the MCP Server's trust in the integrity and availability of the cache server.
 
-#### 4.2 Trusted Authorization Server (OpenID Connect JWT)
+### 4.2 Trusted Authorization Server (OpenID Connect JWT)
 
 - **Concept:** A more advanced, stateless optimization involves a dedicated authorization server. Agents authenticate with this server, which performs the necessary payment checks (on-chain or via its own cache/database) and issues a short-lived JSON Web Token (JWT) containing claims about the agent's access rights.
 - **Implementation:**
@@ -91,11 +91,11 @@ Performing on-chain checks for every request can introduce latency. To optimize 
 - **Configuration:** When initializing an Oldowan Server, administrators can specify the public keys of the authorization servers they trust.
 - **Fallback:** If no trusted authorization server is configured or available, the Oldowan Server SHOULD default to performing direct on-chain checks as described in Section 4.
 
-### 5. Extensibility
+## 5. Extensibility
 
 The Oldowan monetization protocol is designed with extensibility in mind. New payment models beyond the initial three (Token-Gated, Subscription, Credit) can be added in future versions of the specification without requiring fundamental changes to the core authentication and verification flow.
 
-### 6. Security Considerations
+## 6. Security Considerations
 
 - **Signature Verification:** Robust implementation of cryptographic signature verification is paramount.
 - **Replay Attacks:** Mechanisms like timestamps or nonces should be included in signed payloads to prevent replay attacks, especially in the JWT exchange flow.
