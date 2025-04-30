@@ -1,7 +1,7 @@
 {
   "name": "@elite-agents/oldowan",
   "module": "./src/index.ts",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "type": "module",
   "bin": {
     "oldowan": "./dist/cli.js"
