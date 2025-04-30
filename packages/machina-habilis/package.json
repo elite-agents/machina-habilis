@@ -5,10 +5,10 @@
   "type": "module",
   "scripts": {
     "build": "bun build ./src/index.ts --outdir ./dist --external @solana/kit --external openai --external hono --external zod && bun run build:types",
-    "build:all": "bun install && bun build ./src/index.ts --outdir ./dist && bun run build:types",
+    "build:release": "bun run build",
     "dev": "bun run build --watch",
     "build:types": "tsc --emitDeclarationOnly",
-    "release": "bun run build && changeset publish"
+    "release": "changeset publish"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.2",
