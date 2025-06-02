@@ -1,5 +1,11 @@
 # @elite-agents/machina-habilis
 
+## 0.5.0
+
+### Minor Changes
+
+- 34b32f8: update system prompt to include blink instructions and also provide a way to pass in additional system prompt
+
 ## 0.4.0
 
 ### Minor Changes
