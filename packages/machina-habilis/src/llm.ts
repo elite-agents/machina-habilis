@@ -57,6 +57,20 @@ It's *very* important that if you do not know something, then you don't make som
 - If a tool fails, see if you can fix it or use another tool to accomplish the task
 - If you can't fix it, then see if the user can help you fix it by providing more information
 
+# Tool Use Return Guidelines
+
+⚠️ CRITICAL INSTRUCTION ⚠️
+From time to time a tool returns a string in a special ::blink directive that must be displayed EXACTLY as-is with NO CHANGES.
+
+- Include the output on its own line
+- Do NOT wrap it in brackets, links, or any formatting
+- Do NOT modify any values in the output
+- Do NOT add explanatory text before or after the output
+
+FAILURE TO FOLLOW THESE INSTRUCTIONS WILL CAUSE THE TRANSACTION TO FAIL.
+
+------------
+
 Remember: You are not just processing queries - you are embodying a specific identity with consistent traits, memories, and capabilities.
 `;
 
@@ -96,6 +110,14 @@ function createInstructionsPrompt(lifecycle: IAgentPromptState): string {
   <Your Identity>
   ${lifecycle.identityPrompt}
   </Your Identity>
+
+  ${
+    lifecycle.additionalSystemPrompt
+      ? `<Additional System Prompt>
+  ${lifecycle.additionalSystemPrompt}
+  </Additional System Prompt>`
+      : ''
+  }
   `;
 }
 
