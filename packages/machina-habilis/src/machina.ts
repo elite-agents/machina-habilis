@@ -199,6 +199,7 @@ export class MachinaAgent {
       streamTextHandler?: (text: string) => void;
       previousResponseId?: string;
       additionalContext?: Map<string, string>;
+      additionalSystemPrompt?: string;
     },
   ): Promise<IAgentPromptState> {
     const agentPubkey = await getAddressFromPublicKey(
@@ -224,6 +225,7 @@ export class MachinaAgent {
       output: '',
       actionsLog: [],
       previousResponseId: opts?.previousResponseId,
+      additionalSystemPrompt: opts?.additionalSystemPrompt,
     };
 
     const tools = Array.from(this.abilityMap.values()).map((tool) => ({

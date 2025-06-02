@@ -40,6 +40,7 @@ export const ZAgentPromptState = z.object({
   output: z.string().default(''),
   actionsLog: z.array(z.string()).default([]),
   previousResponseId: z.string().optional(),
+  additionalSystemPrompt: z.string().optional(),
 });
 
 export const ZModelSettings = z.object({
