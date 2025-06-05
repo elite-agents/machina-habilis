@@ -34,7 +34,7 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
       - name: Build for release
-        run: bun build:release
+        run: bun run build
 
       - name: Create Release Pull Request or Publish to npm
         id: changesets

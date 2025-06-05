@@ -4,6 +4,9 @@
     // Options specific to this package or overriding the base config
     // "noEmit" from the base is overridden by "outDir" and "declaration"
     // Other options like "lib", "target", "module", "strict", etc., are inherited.
+    "rootDir": "src",
+    "outDir": "dist",
+    "declaration": true
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts"]

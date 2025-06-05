@@ -12,7 +12,8 @@
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
-    "noEmit": true,
+    "emitDeclarationOnly": true,
+    "declaration": true,
 
     // Best practices
     "strict": true,
@@ -22,6 +23,15 @@
     // Some stricter flags (disabled by default)
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "noPropertyAccessFromIndexSignature": false
-  }
+    "noPropertyAccessFromIndexSignature": false,
+    "baseUrl": ".",
+    "paths": {
+      "@elite-agents/auth": ["./packages/auth/src/index.ts"],
+      "@elite-agents/machina-habilis": [
+        "./packages/machina-habilis/src/index.ts"
+      ],
+      "@elite-agents/oldowan": ["./packages/oldowan/src/index.ts"]
+    }
+  },
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts"]
 }

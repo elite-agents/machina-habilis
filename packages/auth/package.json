@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "module": "src/index.ts",
   "type": "module",
+  "scripts": {
+    "build": "bun run build-package"
+  },
   "devDependencies": {
     "@changesets/cli": "^2.29.2",
     "@types/bun": "latest",
