@@ -5,8 +5,9 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { Hono, type Context } from 'hono';
 import { cors } from 'hono/cors';
-import type { MCPServerLike } from '../types';
+import type { MCPServerLike, PaymentDetails } from '../types';
 import EventEmitter from 'events';
+import { verifyDidKeyEd25519JWT } from '@elite-agents/auth';
 
 export class RESTServerTransportHono implements Transport {
   private _eventEmitter: EventEmitter;
@@ -53,7 +54,10 @@ export class RESTServerTransportHono implements Transport {
   }
 }
 
-export const createRestServerHono = (opts: { server: MCPServerLike }) => {
+export const createRestServerHono = (opts: {
+  server: MCPServerLike;
+  paymentDetails?: PaymentDetails;
+}) => {
   const app = new Hono();
 
   app.use(
@@ -70,6 +74,35 @@ export const createRestServerHono = (opts: { server: MCPServerLike }) => {
       const transport = new RESTServerTransportHono();
 
       const body = await c.req.json();
+
+      if (body.method.includes('tools/call') && opts.paymentDetails) {
+        if (opts.paymentDetails.type !== 'pay-per-use') {
+          const authHeader = c.req.header('Authorization');
+
+          const jwt = authHeader?.substring(7); // Remove "Bearer " prefix
+
+          try {
+            const jwtPayloadResult = await verifyDidKeyEd25519JWT(jwt ?? '');
+
+            // TODO: use the jwtPayloadResult to validate the payment
+          } catch (error) {
+            return c.json({ error: (error as Error).message }, 402);
+          }
+        } else {
+          const paymentHeader = c.req.header('X-PAYMENT');
+
+          if (!paymentHeader) {
+            return c.json({ error: 'Payment header is required' }, 402);
+          }
+
+          try {
+            // TODO: process payment
+          } catch (error) {
+            return c.json({ error: (error as Error).message }, 402);
+          }
+        }
+      }
+
       // connect the MCP Server to the Transport
       await opts.server.connect(transport);
       // post the message payload

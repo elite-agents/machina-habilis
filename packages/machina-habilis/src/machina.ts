@@ -6,19 +6,11 @@ import type {
   MemoryService,
   ModelSettings,
 } from './types';
-import {
-  generateDeterministicPayloadForSigning,
-  type OldowanToolDefinition,
-  type ToolAuthArg,
-} from '@elite-agents/oldowan';
+import { type OldowanToolDefinition } from '@elite-agents/oldowan';
 import type { SimplePersona } from './persona';
 import { HabilisServer } from './habilis';
 import type { ResponseFunctionToolCall } from 'openai/resources/responses/responses.mjs';
-import {
-  signBytes,
-  getAddressFromPublicKey,
-  createKeyPairFromBytes,
-} from '@solana/kit';
+import { getAddressFromPublicKey, createKeyPairFromBytes } from '@solana/kit';
 
 export type IMachinaAgentOpts = {
   persona: SimplePersona;
@@ -110,34 +102,6 @@ export class MachinaAgent {
   }
 
   /**
-   * Signs the arguments for a tool call
-   * @param args The arguments to sign
-   * @returns The signed arguments
-   */
-  async signArgs(args: Record<string, unknown>): Promise<ToolAuthArg> {
-    // use current timestamp as nonce so signature cannot be replayed
-    const nonce = Date.now();
-
-    const payload = generateDeterministicPayloadForSigning(args, nonce);
-
-    const keypairToSignWith = await this.getKeypair();
-
-    const signatureBytes = await signBytes(
-      keypairToSignWith.privateKey,
-      payload,
-    );
-
-    const signatureBase64Url =
-      Buffer.from(signatureBytes).toString('base64url');
-
-    const publicKeyBase58 = await getAddressFromPublicKey(
-      keypairToSignWith.publicKey,
-    );
-
-    return { signatureBase64Url, publicKeyBase58, nonce };
-  }
-
-  /**
    * Calls a tool either through HabilisServer if available or directly using the ability map
    * @param toolName The name/ID of the tool to call
    * @param args Arguments to pass to the tool
@@ -149,18 +113,12 @@ export class MachinaAgent {
     args: any,
     streamTextHandler?: (message: string) => void,
   ): Promise<any> {
-    const { signatureBase64Url, publicKeyBase58, nonce } =
-      await this.signArgs(args);
-
+    const keypair = await this.getKeypair();
     // If HabilisServer is available, delegate to it
     if (this.habilisServer) {
       return this.habilisServer.callTool(toolName, args, {
         callback: streamTextHandler,
-        auth: {
-          signatureBase64Url,
-          publicKeyBase58,
-          nonce,
-        },
+        keypair,
       });
     }
 
@@ -174,11 +132,7 @@ export class MachinaAgent {
     return HabilisServer.callToolWithRetries(tool, tool.serverUrl, args, {
       retryCount: 0,
       callback: streamTextHandler,
-      auth: {
-        signatureBase64Url,
-        publicKeyBase58,
-        nonce,
-      },
+      keypair,
     });
   }
 

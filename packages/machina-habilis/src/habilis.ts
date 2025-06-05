@@ -7,6 +7,7 @@ import {
   type OldowanToolDefinition,
   type ToolAuthArg,
 } from '@elite-agents/oldowan';
+import { HTTPClientEd25519AuthenticatedTransport } from './HTTPClientEd25519AuthenticatedTransport';
 import { HTTPClientTransport } from './HTTPClientTransport';
 
 /**
@@ -77,7 +78,7 @@ export class HabilisServer {
       this.addMCPServer(server),
     );
 
-    await Promise.all(mcpServerPromises);
+    return Promise.all(mcpServerPromises);
   }
 
   /**
@@ -230,9 +231,10 @@ export class HabilisServer {
   async callTool(
     toolId: string,
     args: Record<string, unknown>,
-    opts?: {
+    opts: {
       auth?: ToolAuthArg;
       callback?: (message: string) => void;
+      keypair: CryptoKeyPair;
     },
   ): Promise<any> {
     const tool = this.toolsMap.get(toolId);
@@ -246,6 +248,7 @@ export class HabilisServer {
     return HabilisServer.callToolWithRetries(tool, url, args, {
       ...opts,
       retryCount: 0,
+      keypair: opts.keypair,
     });
   }
 
@@ -273,10 +276,11 @@ export class HabilisServer {
       retryCount?: number;
       callback?: (message: string) => void;
       auth?: ToolAuthArg;
-    } = {},
+      keypair: CryptoKeyPair;
+    },
   ): Promise<any> {
     const MAX_RETRIES = 2; // Up to 2 retries (3 attempts total)
-    const { retryCount = 0, callback: retryCallback } = opts;
+    const { retryCount = 0, callback: retryCallback, keypair } = opts;
 
     // Establish a new connection for this specific tool call
     try {
@@ -285,7 +289,11 @@ export class HabilisServer {
         version: '1.0.0',
       });
 
-      await client.connect(new HTTPClientTransport(new URL(url)));
+      await client.connect(
+        new HTTPClientEd25519AuthenticatedTransport(new URL(url), {
+          keypair,
+        }),
+      );
 
       // Prepare tool arguments with optional auth data
       const toolArgs = Object.assign({}, args, { auth: opts.auth });
@@ -340,6 +348,7 @@ export class HabilisServer {
           return this.callToolWithRetries(tool, url, args, {
             retryCount: retryCount + 1,
             callback: retryCallback,
+            keypair,
           });
         }
 

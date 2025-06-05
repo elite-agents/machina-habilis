@@ -3,6 +3,7 @@ export * from './machina';
 export * from './persona';
 export * from './types';
 export * from './mnemon';
+export * from './HTTPClientEd25519AuthenticatedTransport';
 export * from './HTTPClientTransport';
 export {
   deriveToolUniqueName,
