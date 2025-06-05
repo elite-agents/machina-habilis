@@ -58,31 +58,42 @@ export type IEndpointDefinition = z.infer<typeof ZEndpointDefinition>;
 export type OpenAPIParameter = z.infer<typeof ZOpenAPIParameter>;
 export type OpenAPIRequestBody = z.infer<typeof ZOpenAPIRequestBody>;
 
-export const TokenGatedPaymentDetailsSchema = z.object({
+export const PaymentDetailsBaseSchema = z.object({
+  description: z.string().optional(),
+});
+
+export const TokenGatedPaymentDetailsSchema = PaymentDetailsBaseSchema.extend({
   type: z.literal('token-gated'),
   chain: z.literal('solana'),
   tokenAddress: z.string(),
   amountUi: z.number(),
-  description: z.string().optional(),
 });
 
-export const SubscriptionPaymentDetailsSchema = z.object({
-  type: z.literal('subscription'),
-  planId: z.string(),
-  description: z.string().optional(),
-});
+export const SubscriptionPaymentDetailsSchema = PaymentDetailsBaseSchema.extend(
+  {
+    type: z.literal('subscription'),
+    planId: z.string(),
+  },
+);
 
-export const CreditPaymentDetailsSchema = z.object({
+export const CreditPaymentDetailsSchema = PaymentDetailsBaseSchema.extend({
   type: z.literal('credit'),
   amount: z.number(),
   creditId: z.string(),
-  description: z.string().optional(),
+});
+
+export const PayPerUsePaymentDetailsSchema = PaymentDetailsBaseSchema.extend({
+  type: z.literal('pay-per-use'),
+  chain: z.literal('solana'),
+  tokenAddress: z.string(),
+  amountUi: z.number(),
 });
 
 export const PaymentDetailsSchema = z.discriminatedUnion('type', [
   TokenGatedPaymentDetailsSchema,
   SubscriptionPaymentDetailsSchema,
   CreditPaymentDetailsSchema,
+  PayPerUsePaymentDetailsSchema,
 ]);
 
 export type PaymentDetails = z.infer<typeof PaymentDetailsSchema>;

@@ -28,7 +28,6 @@ const echoToolPaid = new OldowanTool<typeof toolSchema>({
   description: 'Echoes input',
   schema: toolSchema,
   execute: async (input) => ({ echoed: input }),
-  paymentDetails,
 });
 
 const echoToolFree = new OldowanTool<typeof toolSchema>({
@@ -39,28 +38,45 @@ const echoToolFree = new OldowanTool<typeof toolSchema>({
 });
 
 describe('Agents End-to-End Tests', async () => {
-  const oldowanServer = new OldowanServer('test', '1.0.0', {
-    tools: [echoToolPaid, echoToolFree],
+  const freeOldowanServer = new OldowanServer('test-free', '1.0.0', {
+    tools: [echoToolFree],
   });
 
-  const server = Bun.serve({
-    fetch: oldowanServer.honoServer.fetch,
+  const paidOldowanServer = new OldowanServer('test-paid', '1.0.0', {
+    tools: [echoToolPaid],
+    paymentDetails,
+  });
+
+  const freeServer = Bun.serve({
+    fetch: freeOldowanServer.honoServer.fetch,
     port: 8080,
   });
 
-  const { serverInfo, toolsAdded } = await HabilisServer.addMCPServer(
-    `${server.url.origin}/mcp`,
-  );
+  const paidServer = Bun.serve({
+    fetch: paidOldowanServer.honoServer.fetch,
+    port: 8081,
+  });
 
-  console.log('toolsAdded', toolsAdded);
+  console.log('freeServer', freeServer.url.origin);
+  console.log('paidServer', paidServer.url.origin);
 
-  const abilities = toolsAdded.map((tool) => ({
+  const habilisServer = new HabilisServer();
+
+  const results = await habilisServer.init([
+    `${freeServer.url.origin}/mcp`,
+    `${paidServer.url.origin}/mcp`,
+  ]);
+
+  const allToolsAdded = results.flatMap(({ toolsAdded }) => toolsAdded);
+
+  console.log('toolsAdded', allToolsAdded);
+
+  const abilities = allToolsAdded.map((tool) => ({
     id: tool.id,
     name: tool.name,
     description: tool.description,
     inputSchema: tool.inputSchema,
-    serverUrl: serverInfo.url,
-    paymentDetails: tool.paymentDetails,
+    serverUrl: tool.serverUrl,
   }));
 
   const keypair = await generateKeypairRawBytes();
@@ -84,7 +100,7 @@ describe('Agents End-to-End Tests', async () => {
   const paidAndFreeAbilityIdMap = new Map<string, string>();
 
   abilities.forEach((ability) => {
-    if (ability.paymentDetails) {
+    if (ability.serverUrl.includes('8081')) {
       paidAndFreeAbilityIdMap.set('PAID', ability.id);
     } else {
       paidAndFreeAbilityIdMap.set('FREE', ability.id);
@@ -92,7 +108,8 @@ describe('Agents End-to-End Tests', async () => {
   });
 
   afterAll(() => {
-    server.stop();
+    freeServer.stop();
+    paidServer.stop();
   });
 
   it('should call paid tool successfully with valid auth', async () => {
@@ -132,22 +149,6 @@ describe('Agents End-to-End Tests', async () => {
     expect(payload.tools[0][0].call_id).toBe(payload.tools[0][1].call_id);
   }, 60000); // longer timeout for llm response
 
-  it('should fail if trying to create an OldowanTool with auth in the schema', async () => {
-    const badSchema = {
-      message: z.string(),
-      auth: z.string(),
-    };
-    expect(() => {
-      new OldowanTool<typeof badSchema>({
-        name: 'echo-paid',
-        description: 'Echoes input',
-        schema: badSchema,
-        execute: async (input) => ({ echoed: input }),
-        paymentDetails,
-      });
-    }).toThrowError(/'auth' is reserved/);
-  });
-
   it('should be able to call a tool with an optional parameter', async () => {
     const mintNftTool = new OldowanTool({
       name: 'mint_nft',
@@ -172,7 +173,7 @@ describe('Agents End-to-End Tests', async () => {
 
     const newServer = Bun.serve({
       fetch: oldowanServer.honoServer.fetch,
-      port: 8081,
+      port: 8082,
     });
 
     const { serverInfo, toolsAdded } = await HabilisServer.addMCPServer(

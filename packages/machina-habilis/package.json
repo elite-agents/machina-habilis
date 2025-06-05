@@ -4,19 +4,19 @@
   "module": "src/index.ts",
   "type": "module",
   "scripts": {
-    "build": "bun build ./src/index.ts --outdir ./dist --external @solana/kit --external openai --external hono --external zod && bun run build:types",
-    "build:release": "bun run build",
-    "dev": "bun run build --watch",
-    "build:types": "tsc --emitDeclarationOnly"
+    "build": "bun run build-package",
+    "dev": "bun run build --watch"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.2",
     "@elite-agents/oldowan": "workspace:*",
+    "@elite-agents/auth": "workspace:*",
     "@types/bun": "latest",
     "typescript": "^5.0.0"
   },
   "bundledDependencies": [
-    "@elite-agents/oldowan"
+    "@elite-agents/oldowan",
+    "@elite-agents/auth"
   ],
   "files": [
     "dist"
