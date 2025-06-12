@@ -1,0 +1,27 @@
+{
+  "name": "@elite-agents/x402-solana",
+  "version": "0.1.0",
+  "module": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "build": "bun run build-package"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.29.2",
+    "@types/bun": "latest",
+    "typescript": "^5.0.0"
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "hono": "^4.7.11",
+    "x402": "^0.3.7",
+    "zod": "^3.25.58"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts"
+}
